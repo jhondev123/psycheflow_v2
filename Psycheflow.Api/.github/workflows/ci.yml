@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restaurar
+        run: |
+          dotnet restore Psycheflow.slnx
+          dotnet tool restore
+
+      - name: Build (warnings = erro)
+        run: dotnet build Psycheflow.slnx --no-restore -c Release
+
+      - name: Verificar migrations pendentes
+        run: dotnet ef migrations has-pending-model-changes --project src/Psycheflow.Api --no-build --configuration Release
+
+      - name: Testes (unitários + integração com Testcontainers)
+        run: dotnet test Psycheflow.slnx --no-build -c Release --collect:"XPlat Code Coverage" --results-directory ./coverage --settings coverlet.runsettings
+
+      - name: Cobertura (mínimo 80% de linhas)
+        run: |
+          dotnet reportgenerator -reports:"coverage/**/coverage.cobertura.xml" -targetdir:coverage/report -reporttypes:"MarkdownSummaryGithub;Cobertura"
+          rate=$(grep -o 'line-rate="[0-9.]*"' coverage/report/Cobertura.xml | head -1 | cut -d'"' -f2)
+          awk -v r="$rate" 'BEGIN { printf "Cobertura de linhas: %.1f%%\n", r * 100; exit (r < 0.80) }'
+
+      - name: Resumo da cobertura
+        if: always()
+        run: cat coverage/report/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY" || true

@@ -1,0 +1,80 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{json,yml,yaml,xml,csproj,props,targets,slnx}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.cs]
+# --- Organização ---
+csharp_style_namespace_declarations = file_scoped:warning
+dotnet_sort_system_directives_first = true
+csharp_using_directive_placement = outside_namespace:warning
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:warning
+
+# --- var: quando o tipo é evidente ---
+csharp_style_var_for_built_in_types = false:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_var_elsewhere = true:suggestion
+
+# --- Estilo moderno ---
+csharp_style_prefer_primary_constructors = true:suggestion
+csharp_style_prefer_collection_expression = when_types_loosely_match:suggestion
+csharp_style_expression_bodied_methods = when_on_single_line:suggestion
+csharp_style_expression_bodied_properties = true:suggestion
+csharp_prefer_braces = true:warning
+csharp_style_pattern_matching_over_is_with_cast_check = true:suggestion
+dotnet_style_prefer_conditional_expression_over_return = false:suggestion
+
+# --- Nomes ---
+dotnet_naming_rule.private_fields_underscore.severity = warning
+dotnet_naming_rule.private_fields_underscore.symbols = private_fields
+dotnet_naming_rule.private_fields_underscore.style = underscore_camel
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+dotnet_naming_symbols.private_fields.required_modifiers = readonly
+dotnet_naming_style.underscore_camel.required_prefix = _
+dotnet_naming_style.underscore_camel.capitalization = camel_case
+
+# --- Analisadores: regras que não se aplicam a uma aplicação web (não é biblioteca) ---
+# Tipos públicos são necessários para OpenAPI/testes; ConfigureAwait não se aplica ao ASP.NET Core.
+dotnet_diagnostic.CA1515.severity = none
+dotnet_diagnostic.CA2007.severity = none
+# Mensagens de log estruturadas simples são suficientes neste projeto.
+dotnet_diagnostic.CA1848.severity = none
+dotnet_diagnostic.CA1873.severity = none
+# Result<T> usa conversões implícitas de forma intencional.
+dotnet_diagnostic.CA2225.severity = none
+dotnet_diagnostic.CA1000.severity = none
+# Validação de argumentos é feita por FluentValidation/Result, não por guard clauses em cada método público.
+dotnet_diagnostic.CA1062.severity = none
+# "Error"/"Result" são nomes de domínio; conflito só com palavras-chave de VB.
+dotnet_diagnostic.CA1716.severity = none
+# Mensagens em pt-BR são literais de propósito (sem arquivos de recurso).
+dotnet_diagnostic.CA1303.severity = none
+# Coleções de navegação do EF precisam de setter/tipo concreto.
+dotnet_diagnostic.CA2227.severity = none
+dotnet_diagnostic.CA1002.severity = none
+# IDE0005 (using desnecessário) como erro no build
+dotnet_diagnostic.IDE0005.severity = warning
+
+[tests/**.cs]
+# Nomes de teste no formato Metodo_Cenario_Resultado
+dotnet_diagnostic.CA1707.severity = none
+dotnet_diagnostic.CA2234.severity = none
+dotnet_diagnostic.CA1861.severity = none
+dotnet_diagnostic.CA1812.severity = none
+
+[**/Migrations/**.cs]
+generated_code = true
+dotnet_diagnostic.IDE0005.severity = none
+dotnet_diagnostic.CA1861.severity = none
