@@ -18,6 +18,7 @@ internal sealed class CompanyConfiguration : IEntityTypeConfiguration<Company>
                 $"session_duration_minutes BETWEEN {CompanySettings.MinSessionDurationMinutes} AND {CompanySettings.MaxSessionDurationMinutes}"));
             settings.WithOwner().HasForeignKey("CompanyId");
             settings.HasKey("CompanyId");
+            settings.Property<Guid>("CompanyId").HasColumnName("company_id");
             settings.Property(s => s.SessionDurationMinutes).HasDefaultValue(CompanySettings.DefaultSessionDurationMinutes);
             settings.Property(s => s.TimeZone).HasMaxLength(64);
         });

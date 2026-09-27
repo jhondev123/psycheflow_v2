@@ -695,7 +695,7 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                         {
                             b1.Property<Guid>("CompanyId")
                                 .HasColumnType("uuid")
-                                .HasColumnName("id");
+                                .HasColumnName("company_id");
 
                             b1.Property<decimal?>("SessionDefaultPrice")
                                 .HasPrecision(12, 2)

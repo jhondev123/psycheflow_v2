@@ -46,18 +46,18 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                 name: "company_settings",
                 columns: table => new
                 {
-                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    company_id = table.Column<Guid>(type: "uuid", nullable: false),
                     session_duration_minutes = table.Column<int>(type: "integer", nullable: false, defaultValue: 50),
                     session_default_price = table.Column<decimal>(type: "numeric(12,2)", precision: 12, scale: 2, nullable: true),
                     time_zone = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("pk_company_settings", x => x.id);
+                    table.PrimaryKey("pk_company_settings", x => x.company_id);
                     table.CheckConstraint("ck_company_settings_session_duration", "session_duration_minutes BETWEEN 15 AND 240");
                     table.ForeignKey(
                         name: "fk_company_settings_companies_id",
-                        column: x => x.id,
+                        column: x => x.company_id,
                         principalTable: "companies",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);

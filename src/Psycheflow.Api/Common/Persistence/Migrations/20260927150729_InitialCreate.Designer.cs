@@ -12,7 +12,7 @@ using Psycheflow.Api.Common.Persistence;
 namespace Psycheflow.Api.Common.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260927145915_InitialCreate")]
+    [Migration("20260927150729_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -698,7 +698,7 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                         {
                             b1.Property<Guid>("CompanyId")
                                 .HasColumnType("uuid")
-                                .HasColumnName("id");
+                                .HasColumnName("company_id");
 
                             b1.Property<decimal?>("SessionDefaultPrice")
                                 .HasPrecision(12, 2)
