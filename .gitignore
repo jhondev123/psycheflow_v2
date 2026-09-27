@@ -1,0 +1,22 @@
+# Cada projeto tem seu próprio .gitignore (Psycheflow.Api/, Psycheflow.Front/); aqui só o que é comum.
+
+# Segredos locais
+.env
+*.env.local
+
+# Build / dependências
+bin/
+obj/
+node_modules/
+dist/
+coverage/
+TestResults/
+
+# IDEs e sistema
+.vs/
+.vscode/
+.idea/
+*.user
+.DS_Store
+Thumbs.db
+~$*
