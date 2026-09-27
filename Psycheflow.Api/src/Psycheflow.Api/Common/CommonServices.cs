@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Psycheflow.Api.Common.Auth;
+using Psycheflow.Api.Common.RateLimiting;
 using Psycheflow.Api.Common.Errors;
 using Psycheflow.Api.Common.OpenApi;
 using Psycheflow.Api.Common.Persistence;
@@ -38,6 +39,7 @@ public static class CommonServices
 
         services.AddIdentityAndJwt();
         services.AddPsycheflowAuthorization();
+        services.AddPsycheflowRateLimiting();
         services.AddPsycheflowOpenApi();
 
         string[] allowedOrigins = configuration.GetSection(CorsSection).Get<string[]>() ?? [];

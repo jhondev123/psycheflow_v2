@@ -192,8 +192,9 @@ Documentação completa e interativa em `/scalar` (ambiente Development).
 | Recorrência | `POST /recurrences` · `GET /recurrences` · `POST /recurrences/{id}/extend`, `/end` |
 | Documentos (PDF) | `GET /documents/receipts/{paymentId}` · `/documents/attendance/{sessionId}` · `/documents/sessions-report` · `/documents/feedback-report` |
 | Laudos | `POST/GET /psychological-reports` · `GET/PUT/DELETE /psychological-reports/{id}` · `POST .../{id}/finalize` · `GET .../{id}/pdf` |
-| Prontuários | `POST/GET /medical-records` · `GET/PUT/DELETE /medical-records/{id}` · `POST .../{id}/attachments` · `GET/DELETE .../attachments/{attachmentId}` |
+| Prontuários | `POST/GET /medical-records` · `GET/PUT/DELETE /medical-records/{id}` · `POST .../{id}/attachments` · `GET/DELETE .../attachments/{attachmentId}` · `GET .../{id}/access-log` |
 | IA | `GET/PUT /ai/settings` · `POST /ai/suggestions/session-notes`, `/patient-analysis`, `/next-steps` |
+| Painel | `GET /dashboard` |
 | Saúde | `GET /health` (fora de `/api/v1`) |
 
 ---
@@ -211,6 +212,7 @@ Documentação completa e interativa em `/scalar` (ambiente Development).
 | `Ai:Claude:ApiKey` / `Ai:OpenAi:ApiKey` / `Ai:Gemini:ApiKey` | Chaves dos provedores de IA (opcionais; só os configurados aparecem para as clínicas). No compose: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY` no `.env` |
 | `Ai:<Provedor>:Model` | Modelo de cada provedor (padrões: `claude-opus-5`, `gpt-5`, `gemini-2.5-pro`) |
 | `Ai:MaxOutputTokens` / `Ai:TimeoutSeconds` | Limite da resposta (16000) e tempo máximo por sugestão (120 s) |
+| `RateLimiting:Auth` / `RateLimiting:Ai` | `PermitLimit` e `WindowSeconds` do limite de requisições (login/registro por IP: 10/min; sugestões de IA por usuário: 20/min) |
 
 - Nada de produção é versionado. Em produção, configure por variáveis de ambiente (`Jwt__Key`, `ConnectionStrings__Postgres`, …).
 - `appsettings.Development.json` e `.env.example` contêm apenas valores de desenvolvimento local.

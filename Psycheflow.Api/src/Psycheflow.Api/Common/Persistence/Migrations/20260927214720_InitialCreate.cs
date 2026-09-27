@@ -533,6 +533,42 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "medical_record_access_logs",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    company_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    medical_record_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    user_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    action = table.Column<int>(type: "integer", nullable: false),
+                    attachment_id = table.Column<Guid>(type: "uuid", nullable: true),
+                    created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    updated_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_medical_record_access_logs", x => x.id);
+                    table.ForeignKey(
+                        name: "fk_medical_record_access_logs_asp_net_users_user_id",
+                        column: x => x.user_id,
+                        principalTable: "users",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "fk_medical_record_access_logs_companies_company_id",
+                        column: x => x.company_id,
+                        principalTable: "companies",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "fk_medical_record_access_logs_medical_records_medical_record_id",
+                        column: x => x.medical_record_id,
+                        principalTable: "medical_records",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "medical_record_attachments",
                 columns: table => new
                 {
@@ -682,6 +718,21 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
             migrationBuilder.CreateIndex(
                 name: "ix_ai_usage_logs_user_id",
                 table: "ai_usage_logs",
+                column: "user_id");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_medical_record_access_logs_company_id",
+                table: "medical_record_access_logs",
+                column: "company_id");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_medical_record_access_logs_medical_record_id_created_at",
+                table: "medical_record_access_logs",
+                columns: new[] { "medical_record_id", "created_at" });
+
+            migrationBuilder.CreateIndex(
+                name: "ix_medical_record_access_logs_user_id",
+                table: "medical_record_access_logs",
                 column: "user_id");
 
             migrationBuilder.CreateIndex(
@@ -870,6 +921,9 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
 
             migrationBuilder.DropTable(
                 name: "company_settings");
+
+            migrationBuilder.DropTable(
+                name: "medical_record_access_logs");
 
             migrationBuilder.DropTable(
                 name: "medical_record_attachments");

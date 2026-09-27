@@ -36,7 +36,8 @@ jobs:
         run: dotnet ef migrations has-pending-model-changes --project src/Psycheflow.Api --no-build --configuration Release
 
       - name: Testes (unitários + integração com Testcontainers)
-        run: dotnet test Psycheflow.slnx --no-build -c Release --collect:"XPlat Code Coverage" --results-directory ./coverage --settings coverlet.runsettings
+        # --blame-hang-timeout: se um teste travar, o run falha com o nome do teste em vez de esperar o timeout do job.
+        run: dotnet test Psycheflow.slnx --no-build -c Release --collect:"XPlat Code Coverage" --results-directory ./coverage --settings coverlet.runsettings --blame-hang-timeout 10m --blame-hang-dump-type none
 
       - name: Cobertura (mínimo 80% de linhas)
         run: |

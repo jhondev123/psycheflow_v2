@@ -8,12 +8,12 @@ public static class SuggestForPatientEndpoint
 {
     public static void Map(IEndpointRouteBuilder group)
     {
-        group.MapPost("/suggestions/patient-analysis", AnalyzeAsync)
+        group.MapPost("/patient-analysis", AnalyzeAsync)
             .WithName("SuggestPatientAnalysis")
             .WithSummary("Análise do acompanhamento do paciente com base nas sessões e no prontuário do psicólogo logado.")
             .WithRequestValidation<PatientSuggestionRequest>();
 
-        group.MapPost("/suggestions/next-steps", NextStepsAsync)
+        group.MapPost("/next-steps", NextStepsAsync)
             .WithName("SuggestNextSteps")
             .WithSummary("Sugestões de próximos passos para o acompanhamento do paciente.")
             .WithRequestValidation<PatientSuggestionRequest>();

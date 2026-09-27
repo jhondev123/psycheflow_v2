@@ -76,6 +76,7 @@ public sealed class AiPromptsTests
     public void SystemPrompt_SetsTheEthicalGuardrails()
     {
         AiPrompts.SystemPrompt.ShouldContain(Pseudonymizer.PatientPlaceholder);
+        AiPrompts.SystemPrompt.ShouldContain(Pseudonymizer.OtherPersonPlaceholder);
         AiPrompts.SystemPrompt.ShouldContain("não invente");
         AiPrompts.SystemPrompt.ShouldContain("diagnóstico");
         AiPrompts.SystemPrompt.ShouldContain("risco");

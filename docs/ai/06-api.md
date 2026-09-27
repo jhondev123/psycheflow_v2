@@ -166,7 +166,8 @@ Somente o psicólogo autor acessa. Modelos da Resolução CFP 06/2019: `Psycholo
 | GET | `/psychological-reports/{id}/pdf` | PDF (rascunho sai com marca d'água "RASCUNHO") |
 
 ## Prontuários (RF019, RF020)
-Somente psicólogos; cada registro é acessível apenas ao psicólogo autor (sigilo, D-02).
+Somente psicólogos; cada registro é acessível apenas ao psicólogo autor (sigilo, D-02). Leituras, downloads e tentativas
+negadas (403) ficam registrados em `medical_record_access_logs` (DT-24).
 
 | Método | Rota | Descrição |
 |--------|------|-----------|
@@ -178,6 +179,7 @@ Somente psicólogos; cada registro é acessível apenas ao psicólogo autor (sig
 | POST | `/medical-records/{id}/attachments` | `multipart/form-data`, campo `file`: PDF/JPG/PNG até 10 MB (validado pela assinatura do arquivo) → 201 |
 | GET | `/medical-records/{id}/attachments/{attachmentId}` | download |
 | DELETE | `/medical-records/{id}/attachments/{attachmentId}` | remove o anexo |
+| GET | `/medical-records/{id}/access-log` | trilha de acessos (mais recentes primeiro): `[{ at, userId, userName, action (Viewed, AttachmentDownloaded, Denied), attachmentId? }]` |
 
 ## Assistente de IA (RF021)
 Provedores: **Claude, OpenAI e Gemini**, com chaves só no servidor (`Ai__Claude__ApiKey`, `Ai__OpenAi__ApiKey`, `Ai__Gemini__ApiKey`).
@@ -200,15 +202,28 @@ clínica (últimas 10 sessões e 10 registros; textos cortados em 4.000 caracter
 `ai.insufficient_data` (422), `ai.refused` (422, recusa do provedor), `ai.provider_failed` / `ai.provider_unavailable` (503).
 Cada sugestão gerada fica registrada em `ai_usage_logs` (sem o conteúdo).
 
+## Painel (RC-06)
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| GET | `/dashboard?psychologistId=` | Psicólogo: a própria agenda. Admin/Manager: a clínica inteira ou o psicólogo informado (outro psicólogo → 403). |
+
+`DashboardResponse`: `{ today, weekStart, weekEnd (segunda a domingo), activePatients, sessionsToday, confirmedToday, sessionsThisWeek,
+pendingConfirmations, finance: { pendingPayments, pendingAmount (sessões concluídas não pagas), receivedThisMonth },
+todayItems: [{ scheduleId, psychologistId, type, status, startTime, endTime, blockReason?, sessionId?, patientId?, patientName?, sessionStatus? }],
+upcoming: [{ sessionId, psychologistId, patientId, patientName, date, startTime, endTime, scheduleStatus }] (até 6, a partir de agora) }`.
+
+## Limite de requisições (DT-23)
+Janela fixa configurável em `RateLimiting:<Política>` (`PermitLimit`, `WindowSeconds`). Ao estourar: **429** em ProblemDetails com
+`code: "rate_limit.exceeded"` e cabeçalho `Retry-After` (segundos).
+
+| Política | Onde | Chave | Padrão |
+|----------|------|-------|--------|
+| `auth` | `POST /auth/login`, `POST /auth/register` | IP | 10 por minuto |
+| `ai` | `POST /ai/suggestions/*` | usuário | 20 por minuto |
+
+Atrás de proxy reverso, configure os cabeçalhos encaminhados (`X-Forwarded-For`) para que o IP real seja usado.
+
 ## Infra
 | Método | Rota | Descrição |
 |--------|------|-----------|
 | GET | `/health` | público; `Healthy` quando a API e o banco respondem |
-
----
-
-## Endpoints previstos (fases seguintes)
-
-| Fase | Método | Rota | Requisito |
-|------|--------|------|-----------|
-| Painel | GET | `/dashboard` (resumo do dia/semana) | RC-06 |

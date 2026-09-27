@@ -26,6 +26,10 @@ public static class MedicalRecordsEndpoints
             .WithName("GetMedicalRecord")
             .WithSummary("Registro do prontuário com a lista de anexos.");
 
+        group.MapGet("/{id:guid}/access-log", AccessLogAsync)
+            .WithName("GetMedicalRecordAccessLog")
+            .WithSummary("Histórico de acessos ao registro: leituras, downloads e tentativas negadas (somente o autor).");
+
         group.MapPut("/{id:guid}", UpdateAsync)
             .WithRequestValidation<UpdateMedicalRecordRequest>()
             .WithName("UpdateMedicalRecord")
@@ -68,6 +72,13 @@ public static class MedicalRecordsEndpoints
     private static async Task<Results<Ok<MedicalRecordResponse>, ProblemHttpResult>> GetAsync(
         Guid id, GetMedicalRecordHandler handler, CancellationToken cancellationToken) =>
         ToOk(await handler.Handle(id, cancellationToken));
+
+    private static async Task<Results<Ok<IReadOnlyList<MedicalRecordAccessEntry>>, ProblemHttpResult>> AccessLogAsync(
+        Guid id, GetAccessLogHandler handler, CancellationToken cancellationToken)
+    {
+        Result<IReadOnlyList<MedicalRecordAccessEntry>> result = await handler.Handle(id, cancellationToken);
+        return result.IsSuccess ? TypedResults.Ok(result.Value) : result.Error.ToProblem();
+    }
 
     private static async Task<Results<Ok<MedicalRecordResponse>, ProblemHttpResult>> UpdateAsync(
         Guid id, UpdateMedicalRecordRequest request, UpdateMedicalRecordHandler handler, CancellationToken cancellationToken) =>

@@ -18,7 +18,7 @@ public static class MedicalRecordErrors
         "medical_record.only_psychologists", "Somente psicólogos podem registrar prontuários.");
 }
 
-/// <summary>Prontuário é do psicólogo autor (sigilo — D-02, RD001/RD002).</summary>
+/// <summary>Prontuário é do psicólogo autor (sigilo — D-02, RD001/RD002). Acessos negados e leituras vão para a trilha de acesso.</summary>
 public sealed class MedicalRecordAccess(AppDbContext db, ICurrentUser currentUser)
 {
     public Result<Guid> RequirePsychologist() =>
@@ -37,8 +37,19 @@ public sealed class MedicalRecordAccess(AppDbContext db, ICurrentUser currentUse
             return MedicalRecordErrors.NotFound;
         }
 
-        return found.Record.PsychologistId == currentUser.PsychologistId
-            ? (found.Record, found.PatientName ?? string.Empty)
-            : MedicalRecordErrors.OnlyAuthor;
+        if (found.Record.PsychologistId != currentUser.PsychologistId)
+        {
+            await LogAsync(found.Record.Id, MedicalRecordAccessAction.Denied, cancellationToken: cancellationToken);
+            return MedicalRecordErrors.OnlyAuthor;
+        }
+
+        return (found.Record, found.PatientName ?? string.Empty);
+    }
+
+    public async Task LogAsync(
+        Guid recordId, MedicalRecordAccessAction action, Guid? attachmentId = null, CancellationToken cancellationToken = default)
+    {
+        db.MedicalRecordAccessLogs.Add(MedicalRecordAccessLog.Create(recordId, currentUser.UserId, action, attachmentId));
+        await db.SaveChangesAsync(cancellationToken);
     }
 }

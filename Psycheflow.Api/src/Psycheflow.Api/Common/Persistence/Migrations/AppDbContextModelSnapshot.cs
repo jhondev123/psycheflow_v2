@@ -415,6 +415,55 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                     b.ToTable("medical_records", (string)null);
                 });
 
+            modelBuilder.Entity("Psycheflow.Api.Features.MedicalRecords.MedicalRecordAccessLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("Action")
+                        .HasColumnType("integer")
+                        .HasColumnName("action");
+
+                    b.Property<Guid?>("AttachmentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("attachment_id");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("company_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("MedicalRecordId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("medical_record_id");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_medical_record_access_logs");
+
+                    b.HasIndex("CompanyId")
+                        .HasDatabaseName("ix_medical_record_access_logs_company_id");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_medical_record_access_logs_user_id");
+
+                    b.HasIndex("MedicalRecordId", "CreatedAt")
+                        .HasDatabaseName("ix_medical_record_access_logs_medical_record_id_created_at");
+
+                    b.ToTable("medical_record_access_logs", (string)null);
+                });
+
             modelBuilder.Entity("Psycheflow.Api.Features.MedicalRecords.MedicalRecordAttachment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1264,6 +1313,30 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_medical_records_psychologists_psychologist_id");
+                });
+
+            modelBuilder.Entity("Psycheflow.Api.Features.MedicalRecords.MedicalRecordAccessLog", b =>
+                {
+                    b.HasOne("Psycheflow.Api.Features.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_medical_record_access_logs_companies_company_id");
+
+                    b.HasOne("Psycheflow.Api.Features.MedicalRecords.MedicalRecord", null)
+                        .WithMany()
+                        .HasForeignKey("MedicalRecordId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_medical_record_access_logs_medical_records_medical_record_id");
+
+                    b.HasOne("Psycheflow.Api.Features.Users.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_medical_record_access_logs_asp_net_users_user_id");
                 });
 
             modelBuilder.Entity("Psycheflow.Api.Features.MedicalRecords.MedicalRecordAttachment", b =>

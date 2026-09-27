@@ -49,7 +49,8 @@ psycheflow/                      # monorepo github.com/jhondev123/psycheflow_v2
 | Docs da API | OpenAPI nativo + **Scalar** (`/scalar`, só em Development) |
 | Testes | xUnit v3 · Shouldly · Bogus · **Testcontainers** (Postgres) · Respawn · coverlet |
 | CI | GitHub Actions: build (warnings = erro), migrations pendentes, testes, cobertura ≥ 80% |
-| Documentos (futuro) | QuestPDF (fase Documentos) — o FastReport foi removido |
+| Documentos | QuestPDF (licença Community) — o FastReport foi removido |
+| IA | SDKs oficiais Anthropic, OpenAI e Google.GenAI atrás de `IAiTextGenerator` |
 
 ### Frontend — `Psycheflow.Front`
 | Item | Tecnologia |
@@ -70,11 +71,12 @@ psycheflow/                      # monorepo github.com/jhondev123/psycheflow_v2
 
 ### API: Vertical Slice + núcleo compartilhado
 - **`Features/<Módulo>/<CasoDeUso>/`**: cada caso de uso é um slice com `Request`, `Validator`, `Handler` e `Endpoint`.
-  Módulos: `Auth`, `Users`, `Companies`, `Psychologists`, `Patients`, `Scheduling`, `Sessions`.
+  Módulos: `Auth`, `Users`, `Companies`, `Psychologists`, `Patients`, `Scheduling`, `Sessions`, `Payments`, `Recurrences`,
+  `Documents`, `PsychologicalReports`, `MedicalRecords`, `Ai`, `Dashboard`.
 - **Entidades e value objects** ficam na raiz do módulo (`Features/Patients/Patient.cs`, `Cpf.cs`…), com construtor
   privado e métodos que protegem as regras (`Session.Complete`, `Psychologist.SetWorkingHours`…).
 - **`Common/`**: só o que é transversal — `Result/Error`, ProblemDetails, filtro de validação, JWT/`ICurrentUser`/policies,
-  `AppDbContext` com filtros globais e auditoria, `ClinicClock`, OpenAPI.
+  `AppDbContext` com filtros globais e auditoria, `ClinicClock`, OpenAPI, `IFileStorage` (anexos) e limite de requisições.
 - **Um slice não chama outro.** Regra compartilhada vai para o domínio ou para um serviço do módulo
   (`ScheduleAvailability`, `SessionAccess`, `AccessTokenIssuer`).
 - `Program.cs` só compõe: `AddCommon()`, `AddPersistence()`, `AddFeatures()`, `MapFeatures()`.

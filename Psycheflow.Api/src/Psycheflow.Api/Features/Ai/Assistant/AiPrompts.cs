@@ -19,7 +19,7 @@ public static class AiPrompts
         - Responda em português do Brasil, em Markdown, de forma objetiva e com linguagem técnica adequada a um prontuário psicológico.
         - Use somente as informações fornecidas: não invente fatos, falas, datas ou histórico. Quando faltar informação relevante, diga o que falta.
         - Não feche diagnóstico nem sugira medicação. Hipóteses devem aparecer como hipóteses a investigar, sempre ligadas aos dados.
-        - Respeite o Código de Ética Profissional do Psicólogo e o sigilo: os dados foram pseudonimizados e o paciente aparece como [paciente]. Não tente identificá-lo nem peça dados pessoais.
+        - Respeite o Código de Ética Profissional do Psicólogo e o sigilo: os dados foram pseudonimizados: o paciente aparece como [paciente] e outras pessoas citadas como [pessoa]. Não tente identificá-los nem peça dados pessoais.
         - Se houver indícios de risco (ideação suicida, autolesão, violência ou negligência), destaque isso no início da resposta e recomende avaliação imediata pelo profissional.
         """;
 

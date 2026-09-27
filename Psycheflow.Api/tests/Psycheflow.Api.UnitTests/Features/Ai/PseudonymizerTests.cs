@@ -53,4 +53,22 @@ public sealed class PseudonymizerTests
 
         Pseudonymizer.Apply(text, Mariana).ShouldBe(text);
     }
+
+    [Fact]
+    public void Apply_CommonFirstNamesOfOtherPeople_BecomeAPersonPlaceholder()
+    {
+        const string text = "A mãe, Joana, e o irmão Pedro vieram juntos. Conversou com a Dra. Fernanda e com o Antônio.";
+
+        string result = Pseudonymizer.Apply(text, Mariana);
+
+        result.ShouldBe("A mãe, [pessoa], e o irmão [pessoa] vieram juntos. Conversou com a Dra. [pessoa] e com o [pessoa].");
+    }
+
+    [Fact]
+    public void Apply_PlacesClinicalTermsAndAmbiguousWords_AreKept()
+    {
+        const string text = "Mora em São Paulo e trabalha em Santa Maria. Escala Beck e TCC. Rosa dos ventos, Luz e Glória.";
+
+        Pseudonymizer.Apply(text, Mariana).ShouldBe(text);
+    }
 }

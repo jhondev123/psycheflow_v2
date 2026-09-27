@@ -7,7 +7,7 @@ namespace Psycheflow.Api.Features.Ai.Suggestions.SessionNotes;
 public static class SuggestSessionNotesEndpoint
 {
     public static RouteHandlerBuilder Map(IEndpointRouteBuilder group) =>
-        group.MapPost("/suggestions/session-notes", HandleAsync)
+        group.MapPost("/session-notes", HandleAsync)
             .WithName("SuggestSessionNotes")
             .WithSummary("Sugestão de registro de evolução a partir do rascunho das anotações da sessão (psicólogo da sessão).")
             .WithRequestValidation<SuggestSessionNotesRequest>();

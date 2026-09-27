@@ -8,7 +8,8 @@ Retrato em 27/09/2026, após a fase de IA da API. Legenda em `README.md`.
   **93,7% de cobertura de linhas**). Cobre **todos os requisitos funcionais obrigatórios** (RF001–RF023): core (conta, usuários,
   configurações, psicólogos, pacientes, agenda, sessões), **financeiro e recorrência**, **documentos em PDF** (recibo, declaração,
   relatórios, laudos/relatórios psicológicos), **prontuários com anexos** e **assistente de IA** (Claude, OpenAI ou Gemini).
-  Faltam só os desejáveis: notificações (RF024–RF026, adiadas pelo dev) e o painel (RC-06).
+  Também tem o painel (RC-06), limite de requisições e trilha de acesso aos prontuários. Faltam só as notificações
+  (RF024–RF026, adiadas pelo dev).
 - **Frontend:** UI bem acabada, mas **100% mock em localStorage** — não fala com a API. D-09 decidido: **remover o mock** e integrar.
 - **Maior gap agora:** integrar o front com a API (DT-01).
 
@@ -33,7 +34,7 @@ Retrato em 27/09/2026, após a fase de IA da API. Legenda em `README.md`.
 | Documentos (recibo, declaração, relatórios, laudos) | ✅ | 🧪🟡 | Telas para baixar os PDFs e editar/finalizar laudos |
 | Prontuários | ✅ | ❌ | Tela de registros com busca e upload de anexos |
 | IA | ✅ | ❌ | Configuração (Admin/Manager) e botões de sugestão (sessão e ficha do paciente) |
-| Painel (RC-06) | ❌ | 🧪✅ | `GET /dashboard` (resumo do dia/semana) |
+| Painel (RC-06) | ✅ | 🧪✅ | Integrar a tela com `GET /dashboard` |
 | Notificações | ❌ | ❌ | Desejável — adiada pelo dev |
 | Testes | ✅ | ❌ | Front: Vitest nas funções de `lib/` |
 
@@ -57,10 +58,13 @@ Retrato em 27/09/2026, após a fase de IA da API. Legenda em `README.md`.
 |----|-----------|------|----------|-------------------|
 | DT-01 | Alta | Front inteiro | Não consome a API; tipos no contrato antigo | `src/lib/api.ts` (fetch + token + ProblemDetails), atualizar `types/index.ts` para o contrato novo (camelCase, enums texto), trocar as ações do `AppStore` uma a uma |
 | DT-22 | Média | Deploy | Sem ambiente publicado (RNF004); segredos de produção por variável de ambiente | Publicar a imagem Docker + Postgres gerenciado com backup |
-| DT-23 | Baixa | API | Sem rate limiting no login (há lockout por conta) | `AddRateLimiter` por IP em `/auth/*` |
-| DT-24 | Baixa | LGPD | Prontuário/laudos só para o autor e uso da IA auditado (`ai_usage_logs`), mas sem trilha de **leitura** de dados clínicos nem criptografia em repouso | Log de acesso aos prontuários; criptografia do volume/disco no deploy |
-| DT-26 | Baixa | IA | A pseudonimização não detecta nomes de terceiros citados nas anotações (familiares, colegas) | Orientar nos termos de uso; avaliar detecção de nomes próprios |
-| DT-25 | Baixa | Skills do Claude (`psycheflow-feature`, `psycheflow-tests`) | Descrevem as convenções antigas (controllers, `GenericResponseDto`, SQLite) | Atualizar para as convenções de `01-visao-geral.md` |
+| DT-24 | Baixa | LGPD | Trilha de acesso aos prontuários e auditoria da IA feitas; falta **criptografia em repouso** | Criptografia do disco/volume e do Postgres gerenciado no deploy (DT-22) |
+| DT-26 | Baixa | IA | Terceiros citados nas anotações só são mascarados quando o prenome está na lista de nomes comuns (~320) | Orientar nos termos de uso a evitar nomes completos de terceiros nas anotações |
+
+### Resolvidas depois da reestruturação
+DT-23 (limite de requisições em login/registro por IP e nas sugestões de IA por usuário) · DT-24, parcial (trilha de acesso aos
+prontuários) · DT-25 (skills atualizadas em `.claude/skills/` do repositório; as cópias do plugin `anthropic-skills` continuam
+antigas e devem ser atualizadas no claude.ai ou removidas) · DT-26, parcial (prenomes comuns de terceiros viram `[pessoa]`).
 
 ### Resolvidas na reestruturação (27/09/2026)
 DT-02 (endpoints públicos/registro inseguro) · DT-03 (segredos versionados — valores antigos continuam no histórico e devem ser
@@ -95,9 +99,10 @@ agendamento sem checar se o psicólogo existe/é da empresa.
 > Fases 0–5 (reestruturação + core) e as fases de Financeiro/Recorrência, Documentos, Prontuários e IA estão concluídas na API —
 > ver o progresso em `08-plano-reestruturacao.md`.
 
-### Próximo — Painel e endurecimento da API
-- [ ] `GET /dashboard` (RC-06): sessões do dia/semana, pendências de pagamento
-- [ ] Rate limiting por IP em `/auth/*` e nas sugestões de IA (DT-23)
+### Painel e endurecimento da API
+- [x] `GET /dashboard` (RC-06): contadores do dia/semana, agenda de hoje, próximos atendimentos e financeiro
+- [x] Limite de requisições por IP em login/registro e por usuário nas sugestões de IA (DT-23)
+- [x] Trilha de acesso aos prontuários (DT-24) e mascaramento de terceiros na IA (DT-26)
 
 ### Integração do front (DT-01, D-09)
 - [ ] `lib/api.ts` (base URL por env, Bearer, ProblemDetails → mensagens por campo) e remoção do mock

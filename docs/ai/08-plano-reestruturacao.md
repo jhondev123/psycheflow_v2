@@ -59,6 +59,7 @@
 | A-32 | Documentos | Um documento QuestPDF por slice, modelo montado no handler e renderizado por uma classe `IDocument`; resposta `application/pdf` com nome de arquivo. Licença QuestPDF Community (projeto acadêmico). |
 | A-33 | Arquivos | `IFileStorage` em `Common/Storage` com implementação local (`Storage:Path`, proteção contra path traversal); volume `api-storage` no compose. |
 | A-34 | IA | Porta `IAiTextGenerator` (Ports & Adapters) com um adaptador por SDK oficial; provedor disponível = chave configurada no servidor; `AiAssistant` concentra autorização, pseudonimização, timeout, recusa/falha (`ErrorType.Unavailable` → 503) e auditoria; SDKs recebem `HttpClient` do `IHttpClientFactory` (testáveis com handler simulado). |
+| A-35 | Endurecimento | Limite de requisições com o middleware nativo (`AddRateLimiter`, janela fixa configurável, 429 em ProblemDetails); trilha de acesso aos prontuários gravada pelo `MedicalRecordAccess` (leitura, download e negação); painel calculado no banco com consultas agregadas (sem cache). |
 
 Decisões D-05 a D-09 confirmadas com o dev em 27/09/2026 (ver `07`). Notificações ficaram para depois (D-11).
 

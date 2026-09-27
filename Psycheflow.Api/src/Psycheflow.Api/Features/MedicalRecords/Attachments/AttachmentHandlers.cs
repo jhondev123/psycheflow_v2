@@ -73,6 +73,7 @@ public sealed class DownloadAttachmentHandler(MedicalRecordAccess access, IFileS
         }
 
         Stream content = await storage.OpenReadAsync(attachment.StorageKey(currentUser.CompanyId), cancellationToken);
+        await access.LogAsync(recordId, MedicalRecordAccessAction.AttachmentDownloaded, attachment.Id, cancellationToken);
         return new AttachmentDownload(content, attachment.ContentType, attachment.FileName);
     }
 }

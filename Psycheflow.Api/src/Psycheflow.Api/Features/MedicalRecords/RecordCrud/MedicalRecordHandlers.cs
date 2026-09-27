@@ -95,7 +95,13 @@ public sealed class GetMedicalRecordHandler(MedicalRecordAccess access)
     public async Task<Result<MedicalRecordResponse>> Handle(Guid id, CancellationToken cancellationToken)
     {
         Result<(MedicalRecord Record, string PatientName)> found = await access.FindOwnAsync(id, cancellationToken);
-        return found.IsSuccess ? MedicalRecordResponse.From(found.Value.Record, found.Value.PatientName) : found.Error;
+        if (found.IsFailure)
+        {
+            return found.Error;
+        }
+
+        await access.LogAsync(id, MedicalRecordAccessAction.Viewed, cancellationToken: cancellationToken);
+        return MedicalRecordResponse.From(found.Value.Record, found.Value.PatientName);
     }
 }
 
@@ -129,5 +135,32 @@ public sealed class DeleteMedicalRecordHandler(AppDbContext db, MedicalRecordAcc
         db.MedicalRecords.Remove(found.Value.Record);
         await db.SaveChangesAsync(cancellationToken);
         return Result.Success();
+    }
+}
+
+/// <summary>DT-24: histórico de acessos ao registro (somente o autor consulta).</summary>
+public sealed class GetAccessLogHandler(AppDbContext db, MedicalRecordAccess access)
+{
+    public async Task<Result<IReadOnlyList<MedicalRecordAccessEntry>>> Handle(Guid id, CancellationToken cancellationToken)
+    {
+        Result<(MedicalRecord Record, string PatientName)> found = await access.FindOwnAsync(id, cancellationToken);
+        if (found.IsFailure)
+        {
+            return found.Error;
+        }
+
+        List<MedicalRecordAccessEntry> entries = await db.MedicalRecordAccessLogs
+            .AsNoTracking()
+            .Where(l => l.MedicalRecordId == id)
+            .OrderByDescending(l => l.CreatedAt)
+            .Select(l => new MedicalRecordAccessEntry(
+                l.CreatedAt,
+                l.UserId,
+                db.Users.Where(u => u.Id == l.UserId).Select(u => u.FullName).FirstOrDefault() ?? string.Empty,
+                l.Action,
+                l.AttachmentId))
+            .ToListAsync(cancellationToken);
+
+        return entries;
     }
 }

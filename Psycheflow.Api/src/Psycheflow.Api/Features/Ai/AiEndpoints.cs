@@ -1,3 +1,4 @@
+using Psycheflow.Api.Common.RateLimiting;
 using Psycheflow.Api.Features.Ai.GetAiSettings;
 using Psycheflow.Api.Features.Ai.Suggestions.PatientSuggestions;
 using Psycheflow.Api.Features.Ai.Suggestions.SessionNotes;
@@ -14,8 +15,10 @@ public static class AiEndpoints
 
         GetAiSettingsEndpoint.Map(group);
         UpdateAiSettingsEndpoint.Map(group);
-        SuggestSessionNotesEndpoint.Map(group);
-        SuggestForPatientEndpoint.Map(group);
+        // Cada sugestão consome créditos do provedor: limite por usuário (DT-23).
+        RouteGroupBuilder suggestions = group.MapGroup("/suggestions").RequireRateLimiting(RateLimitPolicies.Ai);
+        SuggestSessionNotesEndpoint.Map(suggestions);
+        SuggestForPatientEndpoint.Map(suggestions);
 
         return api;
     }

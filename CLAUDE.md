@@ -10,4 +10,5 @@ requisitos (`02`), casos de uso (`03`), regras de negócio (`04`), modelo de dad
 - **TDD obrigatório:** escreva os testes de integração (Testcontainers) e unitários antes da implementação; `dotnet test` verde antes de concluir.
 - Isolamento por empresa (`CompanyId`) e exclusão lógica (`DeletedAt`) são filtros globais do EF — não contorne sem motivo.
 - Ao concluir algo, atualize o status em `docs/ai/02-requisitos.md` e `docs/ai/07-status-e-backlog.md`.
+- Skills do projeto em `.claude/skills/` (`psycheflow-feature`, `psycheflow-tests`) descrevem o fluxo atual; prefira-as às cópias antigas do plugin.
 - Decisões marcadas como `D-xx` em `07-status-e-backlog.md` devem ser confirmadas com o dev antes de implementar.

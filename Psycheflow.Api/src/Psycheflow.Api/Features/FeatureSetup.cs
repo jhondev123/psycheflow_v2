@@ -6,6 +6,7 @@ using Psycheflow.Api.Features.Ai.Assistant;
 using Psycheflow.Api.Features.Ai.Providers;
 using Psycheflow.Api.Features.Auth;
 using Psycheflow.Api.Features.Companies;
+using Psycheflow.Api.Features.Dashboard.GetDashboard;
 using Psycheflow.Api.Features.Documents;
 using Psycheflow.Api.Features.Documents.Pdf;
 using Psycheflow.Api.Features.MedicalRecords;
@@ -79,7 +80,8 @@ public static class FeatureSetup
             .MapDocumentsEndpoints()
             .MapPsychologicalReportsEndpoints()
             .MapMedicalRecordsEndpoints()
-            .MapAiEndpoints();
+            .MapAiEndpoints()
+            .MapDashboardEndpoints();
 
         return api;
     }

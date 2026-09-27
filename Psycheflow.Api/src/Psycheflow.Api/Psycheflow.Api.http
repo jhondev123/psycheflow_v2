@@ -51,6 +51,10 @@ Content-Type: application/json
   }
 }
 
+### Painel (hoje, semana, próximos atendimentos e financeiro)
+GET {{api}}/dashboard
+Authorization: Bearer {{token}}
+
 ### Agenda da semana
 GET {{api}}/agenda?from=2026-10-05&to=2026-10-11
 Authorization: Bearer {{token}}

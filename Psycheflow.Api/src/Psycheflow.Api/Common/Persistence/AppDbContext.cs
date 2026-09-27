@@ -48,6 +48,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, ICurren
 
     public DbSet<MedicalRecordAttachment> MedicalRecordAttachments => Set<MedicalRecordAttachment>();
 
+    public DbSet<MedicalRecordAccessLog> MedicalRecordAccessLogs => Set<MedicalRecordAccessLog>();
+
     public DbSet<AiSettings> AiSettings => Set<AiSettings>();
 
     public DbSet<AiUsageLog> AiUsageLogs => Set<AiUsageLog>();

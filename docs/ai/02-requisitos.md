@@ -44,7 +44,7 @@ Status por camada — legenda em `README.md`. Regras detalhadas: `04-regras-de-n
 | RC-03 | Horários de trabalho do psicólogo | Complementar | ✅ | 🧪✅ | UC27 |
 | RC-04 | Perfil do profissional (nome, CRP, abordagem, telefone) | Complementar | ✅ | 🧪✅ | UC28 |
 | RC-05 | Modelos de documento (cadastro e geração em PDF) | Complementar | ❌ (removido) | 🧪🟡 | UC29 |
-| RC-06 | Painel inicial (resumo do dia/semana) | Complementar | ❌ | 🧪✅ | — |
+| RC-06 | Painel inicial (resumo do dia/semana) | Complementar | ✅ | 🧪✅ | — |
 | RC-07 | Tema claro/escuro | Complementar | — | ✅ | — |
 | RC-08 | Health check da API | Complementar | ✅ | — | — |
 
@@ -173,7 +173,7 @@ Status por camada — legenda em `README.md`. Regras detalhadas: `04-regras-de-n
 | RC-03 | Horários de trabalho por dia da semana (várias faixas) | ✅ `PUT /api/v1/psychologists/{id}/working-hours` (várias faixas, sem sobreposição) | 🧪✅ `WorkingHours.tsx` (1 faixa por dia) | RN-68 |
 | RC-04 | Perfil profissional: nome, telefone, CRP, abordagem | ✅ `PUT /api/v1/psychologists/{id}` (nome, telefone, CRP, abordagem) | 🧪✅ `Profile.tsx` | |
 | RC-05 | Modelos de documento com campos (obrigatório, padrão, ordem) e geração de PDF | ❌ removido (FastReport); documentos voltam com QuestPDF | 🧪🟡 lista modelos do seed e gera `.txt`; não cria modelos | RN-60, RN-61 |
-| RC-06 | Painel: atendimentos de hoje, pendentes, semana, próximos | ❌ (a agenda `GET /api/v1/agenda` já fornece os dados; endpoint de painel é backlog) | 🧪✅ `Dashboard.tsx` | |
+| RC-06 | Painel: atendimentos de hoje, pendentes, semana, próximos | ✅ `GET /api/v1/dashboard` (contadores do dia/semana, agenda de hoje, próximos atendimentos e financeiro a receber/recebido no mês) | 🧪✅ `Dashboard.tsx` | |
 | RC-07 | Tema claro/escuro persistido | — | ✅ | |
 | RC-08 | Health check (`GET /Api/healthcheck`) | ✅ `GET /health` (verifica o banco) | — | |
 
@@ -194,4 +194,4 @@ Status por camada — legenda em `README.md`. Regras detalhadas: `04-regras-de-n
 | ID | Requisito | Status | Observação |
 |----|-----------|--------|------------|
 | RD001 | Seguir a Resolução CFP nº 013/2015 (atuação do psicólogo e prontuários eletrônicos) | 🟡 | Recomenda-se o dev conferir o texto da resolução citada e das normas do CFP sobre registro documental/prontuário antes de implementar RF019/RF020 (guarda mínima, sigilo, acesso). |
-| RD002 | Confidencialidade: só profissionais autorizados acessam dados do paciente | ✅ (API) | Isolamento por empresa em todas as consultas; psicólogo só acessa a própria agenda; anotações e feedback só para o psicólogo da sessão (D-02). |
+| RD002 | Confidencialidade: só profissionais autorizados acessam dados do paciente | ✅ (API) | Isolamento por empresa em todas as consultas; psicólogo só acessa a própria agenda; anotações e feedback só para o psicólogo da sessão (D-02); prontuários e laudos só para o autor, com trilha de acessos (leituras, downloads e tentativas negadas — `GET /medical-records/{id}/access-log`). |

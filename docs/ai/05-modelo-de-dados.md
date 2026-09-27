@@ -162,6 +162,10 @@ Configuração de cada tabela: `Features/<Módulo>/<Entidade>Configuration.cs`.
 auditoria/soft delete. O arquivo fica fora do banco, no `IFileStorage` (volume `Storage:Path`, D-06), na chave
 `{company}/medical-records/{record}/{attachment}`.
 
+### medical_record_access_logs (RD002, DT-24)
+`id`, `company_id`, `medical_record_id` (FK), `user_id` (FK → users), `action int` (`MedicalRecordAccessAction`: 0 Viewed,
+1 AttachmentDownloaded, 2 Denied), `attachment_id NULL`, `created_at`. Só inclusão; índice (medical_record_id, created_at).
+
 ### ai_settings (RF021, D-07)
 | Coluna | Tipo | Obs |
 |--------|------|-----|
@@ -198,7 +202,7 @@ nem a resposta. Índice (company_id, created_at).
 | sessions → payments | 1:0..1 (um ativo) | Restrict |
 | recurrences → sessions | 1:N | Restrict |
 | psychologists, patients → recurrences, psychological_reports, medical_records | 1:N | Restrict |
-| medical_records → medical_record_attachments | 1:N | Restrict |
+| medical_records → medical_record_attachments, medical_record_access_logs | 1:N | Restrict |
 | companies → ai_settings | 1:0..1 | Restrict |
 | users, patients → ai_usage_logs | 1:N | Restrict |
 

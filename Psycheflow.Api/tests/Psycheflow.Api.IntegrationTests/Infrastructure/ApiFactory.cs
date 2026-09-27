@@ -86,6 +86,10 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("Jwt:Key", "integration-tests-signing-key-0123456789abcdef");
         builder.UseSetting(PersistenceSetup.MigrateOnStartupKey, "true");
         builder.UseSetting("Storage:Path", _storagePath);
+
+        // Limites altos: a suíte faz muitos logins; RateLimitingTests sobe instâncias com limites baixos.
+        builder.UseSetting("RateLimiting:Auth:PermitLimit", "100000");
+        builder.UseSetting("RateLimiting:Ai:PermitLimit", "100000");
         builder.ConfigureTestServices(services =>
         {
             services.AddSingleton<TimeProvider>(Clock);

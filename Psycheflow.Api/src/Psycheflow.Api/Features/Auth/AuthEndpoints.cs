@@ -1,3 +1,4 @@
+using Psycheflow.Api.Common.RateLimiting;
 using Psycheflow.Api.Features.Auth.ChangePassword;
 using Psycheflow.Api.Features.Auth.Login;
 using Psycheflow.Api.Features.Auth.Me;
@@ -11,8 +12,8 @@ public static class AuthEndpoints
     {
         RouteGroupBuilder group = api.MapGroup("/auth").WithTags("Auth");
 
-        RegisterEndpoint.Map(group);
-        LoginEndpoint.Map(group);
+        RegisterEndpoint.Map(group).RequireRateLimiting(RateLimitPolicies.Auth);
+        LoginEndpoint.Map(group).RequireRateLimiting(RateLimitPolicies.Auth);
         ChangePasswordEndpoint.Map(group);
         MeEndpoint.Map(group);
 

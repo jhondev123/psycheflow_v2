@@ -9,12 +9,15 @@ public sealed record PatientIdentity(string FullName, string? Cpf, string? Email
 
 /// <summary>
 /// Pseudonimização (LGPD, art. 13) aplicada a todo texto enviado à IA: o nome do paciente (completo ou partes, sem diferenciar
-/// maiúsculas/acentos) vira "[paciente]"; CPF, e-mail, telefone, CEP e rua são mascarados.
-/// Limitação conhecida: nomes de terceiros citados nas anotações (familiares, colegas) não são detectados.
+/// maiúsculas/acentos) vira "[paciente]"; prenomes comuns de outras pessoas citadas (familiares, colegas) viram "[pessoa]";
+/// CPF, e-mail, telefone, CEP e rua são mascarados.
+/// Limitação: terceiros com nomes fora da lista de prenomes comuns (ou só pelo sobrenome) não são detectados.
 /// </summary>
 public static partial class Pseudonymizer
 {
     public const string PatientPlaceholder = "[paciente]";
+
+    public const string OtherPersonPlaceholder = "[pessoa]";
 
     private const int MinNamePartLength = 3;
     private const int MinStreetLength = 5;
@@ -52,7 +55,8 @@ public static partial class Pseudonymizer
             result = ReplaceWords(result, part, PatientPlaceholder);
         }
 
-        return result;
+        return CapitalizedWordPattern().Replace(result, match =>
+            CommonFirstNames.All.Contains(RemoveDiacritics(match.Value).ToLowerInvariant()) ? OtherPersonPlaceholder : match.Value);
     }
 
     private static IEnumerable<string> NameParts(string fullName) =>
@@ -120,6 +124,10 @@ public static partial class Pseudonymizer
 
         return builder.ToString().Normalize(NormalizationForm.FormC);
     }
+
+    /// <summary>Palavra iniciada por maiúscula, exceto em nomes de lugares como "São Paulo" ou "Santa Maria".</summary>
+    [GeneratedRegex(@"(?<!\b(?:S[ãa]o|Santa|Santo)\s)(?<!\w)\p{Lu}\p{Ll}+(?!\w)", RegexOptions.None, RegexTimeoutMilliseconds)]
+    private static partial Regex CapitalizedWordPattern();
 
     [GeneratedRegex(@"[\w.%+-]+@[\w-]+(?:\.[\w-]+)+", RegexOptions.None, RegexTimeoutMilliseconds)]
     private static partial Regex EmailPattern();
