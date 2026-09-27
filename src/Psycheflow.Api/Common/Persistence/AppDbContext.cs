@@ -8,6 +8,8 @@ using Psycheflow.Api.Common.Domain;
 using Psycheflow.Api.Features.Companies;
 using Psycheflow.Api.Features.Patients;
 using Psycheflow.Api.Features.Psychologists;
+using Psycheflow.Api.Features.Scheduling;
+using Psycheflow.Api.Features.Sessions;
 using Psycheflow.Api.Features.Users;
 
 namespace Psycheflow.Api.Common.Persistence;
@@ -26,6 +28,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, ICurren
     public DbSet<Psychologist> Psychologists => Set<Psychologist>();
 
     public DbSet<Patient> Patients => Set<Patient>();
+
+    public DbSet<Schedule> Schedules => Set<Schedule>();
+
+    public DbSet<Session> Sessions => Set<Session>();
 
     /// <summary>
     /// Empresa usada pelo filtro global. Sem usuário autenticado é nula e nenhum dado de empresa é retornado.

@@ -5,6 +5,8 @@ using Psycheflow.Api.Common.Domain;
 using Psycheflow.Api.Features.Companies;
 using Psycheflow.Api.Features.Patients;
 using Psycheflow.Api.Features.Psychologists;
+using Psycheflow.Api.Features.Scheduling;
+using Psycheflow.Api.Features.Sessions;
 using Psycheflow.Api.Features.Users;
 
 namespace Psycheflow.Api.Common.Persistence;
@@ -49,11 +51,14 @@ internal static class DevData
         db.Psychologists.AddRange(anaProfile, brunoProfile);
 
         // O seed roda sem usuário logado: a empresa dos dados de tenant é definida explicitamente.
-        foreach (Patient patient in DemoPatients())
+        List<Patient> patients = [.. DemoPatients()];
+        foreach (Patient patient in patients)
         {
             db.Patients.Add(patient);
             db.Entry(patient).Property(p => p.CompanyId).CurrentValue = company.Id;
         }
+
+        AddDemoAgenda(db, company.Id, anaProfile.Id, brunoProfile.Id, patients);
 
         await db.SaveChangesAsync(cancellationToken);
     }
@@ -79,6 +84,57 @@ internal static class DevData
             yield return Patient.Create(
                 name, Cpf.Create(CompleteCpf(cpfBase)).Value, email, Phone.Create(phone).Value, new DateOnly(birthYear, 3, 15), address, notes: null);
         }
+    }
+
+    /// <summary>
+    /// Agenda relativa a hoje: sessões concluídas nas duas semanas anteriores (com anotações e feedback),
+    /// sessões futuras nos próximos dias úteis e um bloqueio de almoço com a equipe.
+    /// </summary>
+    private static void AddDemoAgenda(AppDbContext db, Guid companyId, Guid anaId, Guid brunoId, List<Patient> patients)
+    {
+        DateOnly today = DateOnly.FromDateTime(DateTime.Today);
+        int[] hours = [8, 9, 10, 14, 15, 16];
+
+        for (int offset = -14; offset <= 14; offset++)
+        {
+            DateOnly day = today.AddDays(offset);
+            if (day.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday || offset == 0)
+            {
+                continue;
+            }
+
+            for (int i = 0; i < 2; i++)
+            {
+                Patient patient = patients[Math.Abs(offset * 2 + i) % patients.Count];
+                Guid psychologistId = i == 0 ? anaId : brunoId;
+                int hour = hours[Math.Abs(offset + i) % hours.Length];
+                TimeSlot slot = TimeSlot.FromDuration(day, new TimeOnly(hour, 0), CompanySettings.DefaultSessionDurationMinutes).Value;
+
+                var session = Session.Book(psychologistId, patient.Id, slot, notes: null);
+                if (offset < 0)
+                {
+                    session.Complete("Paciente relatou evolução nos objetivos combinados.", 6 + (Math.Abs(offset) % 5), null, DateTime.MaxValue);
+                }
+                else
+                {
+                    session.Confirm();
+                }
+
+                AddTenant(db, session, companyId);
+                AddTenant(db, session.Schedule, companyId);
+            }
+        }
+
+        DateOnly nextFriday = today.AddDays(((int)DayOfWeek.Friday - (int)today.DayOfWeek + 7) % 7 + 7);
+        Schedule block = Schedule.Block(anaId, TimeSlot.Create(nextFriday, new TimeOnly(12, 0), new TimeOnly(13, 30)).Value, "Reunião de equipe");
+        AddTenant(db, block, companyId);
+    }
+
+    private static void AddTenant<TEntity>(AppDbContext db, TEntity entity, Guid companyId)
+        where TEntity : class
+    {
+        db.Add(entity);
+        db.Entry(entity).Property("CompanyId").CurrentValue = companyId;
     }
 
     /// <summary>Calcula os dois dígitos verificadores a partir dos 9 primeiros dígitos.</summary>

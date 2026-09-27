@@ -300,6 +300,90 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "schedules",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    company_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    psychologist_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    date = table.Column<DateOnly>(type: "date", nullable: false),
+                    start_time = table.Column<TimeOnly>(type: "time without time zone", nullable: false),
+                    end_time = table.Column<TimeOnly>(type: "time without time zone", nullable: false),
+                    type = table.Column<int>(type: "integer", nullable: false),
+                    status = table.Column<int>(type: "integer", nullable: false),
+                    block_reason = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    deleted_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    updated_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_schedules", x => x.id);
+                    table.CheckConstraint("ck_schedules_time_range", "end_time > start_time");
+                    table.ForeignKey(
+                        name: "fk_schedules_companies_company_id",
+                        column: x => x.company_id,
+                        principalTable: "companies",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "fk_schedules_psychologists_psychologist_id",
+                        column: x => x.psychologist_id,
+                        principalTable: "psychologists",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "sessions",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    company_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    schedule_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    psychologist_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    patient_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    status = table.Column<int>(type: "integer", nullable: false),
+                    notes = table.Column<string>(type: "character varying(20000)", maxLength: 20000, nullable: true),
+                    feedback_score = table.Column<int>(type: "integer", nullable: true),
+                    feedback_comment = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    cancellation_reason = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    reschedule_reason = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    deleted_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    updated_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_sessions", x => x.id);
+                    table.CheckConstraint("ck_sessions_feedback_score", "feedback_score IS NULL OR feedback_score BETWEEN 0 AND 10");
+                    table.ForeignKey(
+                        name: "fk_sessions_companies_company_id",
+                        column: x => x.company_id,
+                        principalTable: "companies",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "fk_sessions_patients_patient_id",
+                        column: x => x.patient_id,
+                        principalTable: "patients",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "fk_sessions_psychologists_psychologist_id",
+                        column: x => x.psychologist_id,
+                        principalTable: "psychologists",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "fk_sessions_schedules_schedule_id",
+                        column: x => x.schedule_id,
+                        principalTable: "schedules",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
             migrationBuilder.InsertData(
                 table: "roles",
                 columns: new[] { "id", "concurrency_stamp", "name", "normalized_name" },
@@ -357,6 +441,37 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "ix_schedules_company_id",
+                table: "schedules",
+                column: "company_id");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_schedules_psychologist_id_date",
+                table: "schedules",
+                columns: new[] { "psychologist_id", "date" });
+
+            migrationBuilder.CreateIndex(
+                name: "ix_sessions_company_id",
+                table: "sessions",
+                column: "company_id");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_sessions_patient_id_status",
+                table: "sessions",
+                columns: new[] { "patient_id", "status" });
+
+            migrationBuilder.CreateIndex(
+                name: "ix_sessions_psychologist_id",
+                table: "sessions",
+                column: "psychologist_id");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_sessions_schedule_id",
+                table: "sessions",
+                column: "schedule_id",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "ix_user_claims_user_id",
                 table: "user_claims",
                 column: "user_id");
@@ -395,13 +510,13 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                 name: "company_settings");
 
             migrationBuilder.DropTable(
-                name: "patients");
-
-            migrationBuilder.DropTable(
                 name: "psychologist_working_hours");
 
             migrationBuilder.DropTable(
                 name: "role_claims");
+
+            migrationBuilder.DropTable(
+                name: "sessions");
 
             migrationBuilder.DropTable(
                 name: "user_claims");
@@ -416,10 +531,16 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                 name: "user_tokens");
 
             migrationBuilder.DropTable(
-                name: "psychologists");
+                name: "patients");
+
+            migrationBuilder.DropTable(
+                name: "schedules");
 
             migrationBuilder.DropTable(
                 name: "roles");
+
+            migrationBuilder.DropTable(
+                name: "psychologists");
 
             migrationBuilder.DropTable(
                 name: "users");

@@ -12,7 +12,7 @@ using Psycheflow.Api.Common.Persistence;
 namespace Psycheflow.Api.Common.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260927144751_InitialCreate")]
+    [Migration("20260927145915_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -379,6 +379,156 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                     b.ToTable("psychologists", (string)null);
                 });
 
+            modelBuilder.Entity("Psycheflow.Api.Features.Scheduling.Schedule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("BlockReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("block_reason");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("company_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date")
+                        .HasColumnName("date");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<TimeOnly>("EndTime")
+                        .HasColumnType("time without time zone")
+                        .HasColumnName("end_time");
+
+                    b.Property<Guid>("PsychologistId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("psychologist_id");
+
+                    b.Property<TimeOnly>("StartTime")
+                        .HasColumnType("time without time zone")
+                        .HasColumnName("start_time");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer")
+                        .HasColumnName("type");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_schedules");
+
+                    b.HasIndex("CompanyId")
+                        .HasDatabaseName("ix_schedules_company_id");
+
+                    b.HasIndex("PsychologistId", "Date")
+                        .HasDatabaseName("ix_schedules_psychologist_id_date");
+
+                    b.ToTable("schedules", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_schedules_time_range", "end_time > start_time");
+                        });
+                });
+
+            modelBuilder.Entity("Psycheflow.Api.Features.Sessions.Session", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("CancellationReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("cancellation_reason");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("company_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<string>("FeedbackComment")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("feedback_comment");
+
+                    b.Property<int?>("FeedbackScore")
+                        .HasColumnType("integer")
+                        .HasColumnName("feedback_score");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(20000)
+                        .HasColumnType("character varying(20000)")
+                        .HasColumnName("notes");
+
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("patient_id");
+
+                    b.Property<Guid>("PsychologistId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("psychologist_id");
+
+                    b.Property<string>("RescheduleReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("reschedule_reason");
+
+                    b.Property<Guid>("ScheduleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("schedule_id");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_sessions");
+
+                    b.HasIndex("CompanyId")
+                        .HasDatabaseName("ix_sessions_company_id");
+
+                    b.HasIndex("PsychologistId")
+                        .HasDatabaseName("ix_sessions_psychologist_id");
+
+                    b.HasIndex("ScheduleId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_sessions_schedule_id");
+
+                    b.HasIndex("PatientId", "Status")
+                        .HasDatabaseName("ix_sessions_patient_id_status");
+
+                    b.ToTable("sessions", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_sessions_feedback_score", "feedback_score IS NULL OR feedback_score BETWEEN 0 AND 10");
+                        });
+                });
+
             modelBuilder.Entity("Psycheflow.Api.Features.Users.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -717,6 +867,60 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                     b.Navigation("User");
 
                     b.Navigation("WorkingHours");
+                });
+
+            modelBuilder.Entity("Psycheflow.Api.Features.Scheduling.Schedule", b =>
+                {
+                    b.HasOne("Psycheflow.Api.Features.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_schedules_companies_company_id");
+
+                    b.HasOne("Psycheflow.Api.Features.Psychologists.Psychologist", null)
+                        .WithMany()
+                        .HasForeignKey("PsychologistId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_schedules_psychologists_psychologist_id");
+                });
+
+            modelBuilder.Entity("Psycheflow.Api.Features.Sessions.Session", b =>
+                {
+                    b.HasOne("Psycheflow.Api.Features.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_sessions_companies_company_id");
+
+                    b.HasOne("Psycheflow.Api.Features.Patients.Patient", "Patient")
+                        .WithMany()
+                        .HasForeignKey("PatientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_sessions_patients_patient_id");
+
+                    b.HasOne("Psycheflow.Api.Features.Psychologists.Psychologist", "Psychologist")
+                        .WithMany()
+                        .HasForeignKey("PsychologistId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_sessions_psychologists_psychologist_id");
+
+                    b.HasOne("Psycheflow.Api.Features.Scheduling.Schedule", "Schedule")
+                        .WithOne()
+                        .HasForeignKey("Psycheflow.Api.Features.Sessions.Session", "ScheduleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_sessions_schedules_schedule_id");
+
+                    b.Navigation("Patient");
+
+                    b.Navigation("Psychologist");
+
+                    b.Navigation("Schedule");
                 });
 
             modelBuilder.Entity("Psycheflow.Api.Features.Users.User", b =>

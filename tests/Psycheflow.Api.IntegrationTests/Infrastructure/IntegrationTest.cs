@@ -98,6 +98,16 @@ public abstract class IntegrationTest(ApiFactory factory) : IAsyncLifetime
         return await LoadAccountAsync(auth.AccessToken, email, TestAccounts.DefaultPassword);
     }
 
+    /// <summary>
+    /// Avança o relógio da API para um horário local de São Paulo. Tokens emitidos antes podem expirar
+    /// (validade de 2h): use <see cref="RefreshAsync"/> para renovar as contas depois.
+    /// </summary>
+    protected void TravelTo(DateOnly date, TimeOnly time) => Factory.Clock.SetLocal(date, time);
+
+    /// <summary>Faz login de novo e devolve a conta com um token válido no horário atual do relógio.</summary>
+    protected async Task<TestAccount> RefreshAsync(TestAccount account) =>
+        account with { AccessToken = (await LoginAsync(account.Email, account.Password)).AccessToken };
+
     protected async Task<AuthResponse> LoginAsync(string email, string password)
     {
         HttpResponseMessage response = await Client.PostAsJsonAsync("/api/v1/auth/login", new { email, password }, Ct);
