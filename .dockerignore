@@ -9,6 +9,4 @@
 tests
 TestResults
 coverage
-Psycheflow.Api
-Psycheflow.Api.Tests
 .env

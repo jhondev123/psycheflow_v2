@@ -1,6 +1,0 @@
-@Psycheflow.Api_HostAddress = http://localhost:5125
-
-# GET {{Psycheflow.Api_HostAddress}}/weatherforecast/
-# Accept: application/json
-
-###

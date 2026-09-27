@@ -1,0 +1,82 @@
+# Requisições de exemplo (VS Code REST Client / Rider / Visual Studio).
+# Pré-requisito: API rodando em Development (dados demo carregados). Senha demo: Psycheflow@123
+@api = http://localhost:5240/api/v1
+
+### Login (psicóloga + admin da clínica demo)
+# @name login
+POST {{api}}/auth/login
+Content-Type: application/json
+
+{ "email": "ana@psycheflow.dev", "password": "Psycheflow@123" }
+
+###
+@token = {{login.response.body.accessToken}}
+
+### Usuário logado
+GET {{api}}/auth/me
+Authorization: Bearer {{token}}
+
+### Configurações da empresa
+GET {{api}}/settings
+Authorization: Bearer {{token}}
+
+### Meu perfil de psicólogo (com expediente)
+# @name me
+GET {{api}}/psychologists/me
+Authorization: Bearer {{token}}
+
+### Pacientes (busca por nome, e-mail ou CPF)
+# @name patients
+GET {{api}}/patients?search=mari&pageSize=10
+Authorization: Bearer {{token}}
+
+### Cadastrar paciente
+POST {{api}}/patients
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "fullName": "Paciente Exemplo",
+  "cpf": "529.982.247-25",
+  "email": "exemplo@email.com",
+  "phone": "(45) 99999-0000",
+  "birthDate": "1995-04-10",
+  "address": {
+    "zipCode": "85810-000",
+    "street": "Rua Paraná",
+    "number": "100",
+    "neighborhood": "Centro",
+    "city": "Cascavel",
+    "state": "PR"
+  }
+}
+
+### Agenda da semana
+GET {{api}}/agenda?from=2026-10-05&to=2026-10-11
+Authorization: Bearer {{token}}
+
+### Agendar sessão (duração padrão da empresa)
+# @name session
+POST {{api}}/sessions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "patientId": "{{patients.response.body.items[0].id}}",
+  "date": "2026-10-20",
+  "startTime": "14:00"
+}
+
+### Reagendar (motivo obrigatório)
+POST {{api}}/sessions/{{session.response.body.id}}/reschedule
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "date": "2026-10-21", "startTime": "15:00", "reason": "Pedido do paciente" }
+
+### Bloquear dias inteiros
+POST {{api}}/schedule-blocks
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "startDate": "2026-12-24", "endDate": "2026-12-26", "reason": "Recesso" }
