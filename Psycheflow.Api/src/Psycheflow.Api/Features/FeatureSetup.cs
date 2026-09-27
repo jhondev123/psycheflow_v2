@@ -3,8 +3,11 @@ using System.Reflection;
 using FluentValidation;
 using Psycheflow.Api.Features.Auth;
 using Psycheflow.Api.Features.Companies;
+using Psycheflow.Api.Features.Documents;
+using Psycheflow.Api.Features.Documents.Pdf;
 using Psycheflow.Api.Features.Patients;
 using Psycheflow.Api.Features.Payments;
+using Psycheflow.Api.Features.PsychologicalReports;
 using Psycheflow.Api.Features.Psychologists;
 using Psycheflow.Api.Features.Recurrences;
 using Psycheflow.Api.Features.Scheduling;
@@ -40,6 +43,10 @@ public static class FeatureSetup
         services.AddScoped<PaymentAccess>();
         services.AddScoped<RecurrenceAccess>();
         services.AddScoped<RecurrenceGenerator>();
+        services.AddScoped<DocumentHeaderFactory>();
+        services.AddScoped<PsychologicalReportAccess>();
+
+        PdfSetup.Configure();
 
         ValidatorOptions.Global.LanguageManager.Culture = new CultureInfo("pt-BR");
         ValidatorOptions.Global.DefaultRuleLevelCascadeMode = CascadeMode.Stop;
@@ -60,7 +67,9 @@ public static class FeatureSetup
             .MapSchedulingEndpoints()
             .MapSessionsEndpoints()
             .MapPaymentsEndpoints()
-            .MapRecurrencesEndpoints();
+            .MapRecurrencesEndpoints()
+            .MapDocumentsEndpoints()
+            .MapPsychologicalReportsEndpoints();
 
         return api;
     }

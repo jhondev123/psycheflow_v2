@@ -71,7 +71,7 @@ Status por camada (coluna API atualizada em 27/09/2026, após a reestruturação
 | RN-54 | Status do pagamento: Pendente, Pago, Cancelado | RF012 | ✅ | ❌ | `PaymentStatus`: Pending, Paid, Cancelled. |
 | RN-55 | Lançar pagamento exige sessão **concluída** | UC11 | ✅ | ❌ | "Lançar" = `POST /payments/{id}/pay`, exige sessão Completed (409). |
 | RN-56 | Pagamento com status Pago não pode ser editado (editáveis: valor e status) | RF013 | ✅ | ❌ | `PUT /payments/{id}` só altera valor de pendente (409 se pago). |
-| RN-57 | Recibo só pode ser gerado se o pagamento estiver Pago | RF014 | ❌ | ❌ | |
+| RN-57 | Recibo só pode ser gerado se o pagamento estiver Pago | RF014 | ✅ | ❌ | `GET /documents/receipts/{paymentId}` → 409 se o pagamento não estiver Pago. |
 
 ## Documentos, prontuários e IA
 
@@ -79,9 +79,9 @@ Status por camada (coluna API atualizada em 27/09/2026, após a reestruturação
 |----|-------|--------|-----|-------|------------|
 | RN-60 | Modelo de documento tem campos com ordem, obrigatoriedade e valor padrão; campo obrigatório sem valor impede a geração | Código (base de RF014/RF016) | ❌ (removido) | 🧪 | Motor FastReport removido; documentos serão classes QuestPDF (fase Documentos). |
 | RN-61 | Modelos podem ser globais (`CompanyId = null`) ou da empresa | Código | ❌ (removido) | ❌ | Idem RN-60. |
-| RN-62 | Laudo exige paciente, motivo e modelo; pode incluir dados de sessões e anotações | RF016 | ❌ | ❌ | |
-| RN-63 | Relatório de sessões: filtros período, status da sessão, status do pagamento | RF015 | ❌ | ❌ | |
-| RN-64 | Relatório de feedback: paciente obrigatório + período (fim opcional) | RF015(b) | ❌ | ❌ | |
+| RN-62 | Laudo exige paciente, motivo e modelo; pode incluir dados de sessões e anotações | RF016 | ✅ | ❌ | Paciente, modelo e finalidade obrigatórios; `includeSessionSummary` resume as sessões concluídas no procedimento. |
+| RN-63 | Relatório de sessões: filtros período, status da sessão, status do pagamento | RF015 | ✅ | ❌ | `GET /documents/sessions-report` com período (início obrigatório), status da sessão e do pagamento. |
+| RN-64 | Relatório de feedback: paciente obrigatório + período (fim opcional) | RF015(b) | ✅ | ❌ | `GET /documents/feedback-report`: paciente e início obrigatórios; fim opcional. |
 | RN-65 | Prontuário exige paciente; aceita texto e anexos (PDF/imagem) | RF019 | ❌ | ❌ | |
 | RN-66 | Prontuários: busca por paciente, data de criação e palavra-chave; acesso só a profissionais autorizados | RF020, RD002 | ❌ | ❌ | |
 | RN-67 | IA só funciona com consentimento explícito do psicólogo e sobre os tipos de dado que ele liberar (feedbacks, sessões, prontuários, laudos); revogar desativa | RF021 | ❌ | ❌ | Tabelas `Config`/`ConfigAi` já existem (`ConfigKey.EnableAI`). |

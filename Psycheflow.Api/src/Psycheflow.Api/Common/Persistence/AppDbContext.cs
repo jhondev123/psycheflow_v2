@@ -8,6 +8,7 @@ using Psycheflow.Api.Common.Domain;
 using Psycheflow.Api.Features.Companies;
 using Psycheflow.Api.Features.Patients;
 using Psycheflow.Api.Features.Payments;
+using Psycheflow.Api.Features.PsychologicalReports;
 using Psycheflow.Api.Features.Psychologists;
 using Psycheflow.Api.Features.Recurrences;
 using Psycheflow.Api.Features.Scheduling;
@@ -38,6 +39,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, ICurren
     public DbSet<Payment> Payments => Set<Payment>();
 
     public DbSet<Recurrence> Recurrences => Set<Recurrence>();
+
+    public DbSet<PsychologicalReport> PsychologicalReports => Set<PsychologicalReport>();
 
     /// <summary>
     /// Empresa usada pelo filtro global. Sem usuário autenticado é nula e nenhum dado de empresa é retornado.

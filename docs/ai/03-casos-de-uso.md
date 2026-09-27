@@ -28,10 +28,10 @@ Ator principal em todos: **Psicólogo** (logado), exceto quando indicado.
 | UC11 | Lançar pagamento | RF011 | ✅ | ❌ |
 | UC12 | Visualizar pagamentos | RF012 | ✅ | ❌ |
 | UC13 | Editar pagamento | RF013 | ✅ | ❌ |
-| UC14 | Gerar recibo de sessão | RF014 | ❌ | ❌ |
-| UC15 | Gerar relatório de sessões | RF015 | ❌ | ❌ |
-| UC16 | Gerar relatório de feedback | RF015-B | ❌ | ❌ |
-| UC17 | Gerar laudo | RF016 | ❌ | ❌ |
+| UC14 | Gerar recibo de sessão | RF014 | ✅ | ❌ |
+| UC15 | Gerar relatório de sessões | RF015 | ✅ | ❌ |
+| UC16 | Gerar relatório de feedback | RF015-B | ✅ | ❌ |
+| UC17 | Gerar laudo | RF016 | ✅ | ❌ |
 | UC18 | Gerenciar agenda | RF017 | ✅ | 🧪✅ |
 | UC19 | Lançar bloqueio de agenda | RF018 | ✅ | 🧪🟡 |
 | UC20 | Criar prontuário | RF019 | ❌ | ❌ |

@@ -279,6 +279,50 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "psychological_reports",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    company_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    patient_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    psychologist_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    template = table.Column<int>(type: "integer", nullable: false),
+                    purpose = table.Column<string>(type: "character varying(10000)", maxLength: 10000, nullable: true),
+                    demand = table.Column<string>(type: "character varying(10000)", maxLength: 10000, nullable: true),
+                    procedure = table.Column<string>(type: "character varying(10000)", maxLength: 10000, nullable: true),
+                    analysis = table.Column<string>(type: "character varying(10000)", maxLength: 10000, nullable: true),
+                    conclusion = table.Column<string>(type: "character varying(10000)", maxLength: 10000, nullable: true),
+                    include_session_summary = table.Column<bool>(type: "boolean", nullable: false),
+                    status = table.Column<int>(type: "integer", nullable: false),
+                    finalized_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    deleted_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    updated_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_psychological_reports", x => x.id);
+                    table.ForeignKey(
+                        name: "fk_psychological_reports_companies_company_id",
+                        column: x => x.company_id,
+                        principalTable: "companies",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "fk_psychological_reports_patients_patient_id",
+                        column: x => x.patient_id,
+                        principalTable: "patients",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "fk_psychological_reports_psychologists_psychologist_id",
+                        column: x => x.psychologist_id,
+                        principalTable: "psychologists",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "psychologist_working_hours",
                 columns: table => new
                 {
@@ -512,6 +556,21 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                 filter: "deleted_at IS NULL");
 
             migrationBuilder.CreateIndex(
+                name: "ix_psychological_reports_company_id",
+                table: "psychological_reports",
+                column: "company_id");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_psychological_reports_patient_id",
+                table: "psychological_reports",
+                column: "patient_id");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_psychological_reports_psychologist_id_patient_id",
+                table: "psychological_reports",
+                columns: new[] { "psychologist_id", "patient_id" });
+
+            migrationBuilder.CreateIndex(
                 name: "ix_psychologist_working_hours_psychologist_id",
                 table: "psychologist_working_hours",
                 column: "psychologist_id");
@@ -630,6 +689,9 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
 
             migrationBuilder.DropTable(
                 name: "payments");
+
+            migrationBuilder.DropTable(
+                name: "psychological_reports");
 
             migrationBuilder.DropTable(
                 name: "psychologist_working_hours");

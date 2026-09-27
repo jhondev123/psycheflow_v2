@@ -25,10 +25,10 @@ Status por camada — legenda em `README.md`. Regras detalhadas: `04-regras-de-n
 | RF011 | Lançamento de pagamento | Prioritário | ✅ | ❌ | UC11 |
 | RF012 | Visualização de pagamentos | Prioritário | ✅ | ❌ | UC12 |
 | RF013 | Edição de pagamentos | Prioritário | ✅ | ❌ | UC13 |
-| RF014 | Recibos de sessões | Prioritário | ❌ (QuestPDF) | ❌ | UC14 |
-| RF015 | Relatório de sessões | Prioritário | ❌ (QuestPDF) | ❌ | UC15 |
-| RF015-B | Relatório de feedback de pacientes | Prioritário | ❌ (QuestPDF) | ❌ | UC16 |
-| RF016 | Geração de laudos | Prioritário | ❌ (QuestPDF) | ❌ | UC17 |
+| RF014 | Recibos de sessões | Prioritário | ✅ | ❌ | UC14 |
+| RF015 | Relatório de sessões | Prioritário | ✅ | ❌ | UC15 |
+| RF015-B | Relatório de feedback de pacientes | Prioritário | ✅ | ❌ | UC16 |
+| RF016 | Geração de laudos | Prioritário | ✅ | ❌ | UC17 |
 | RF017 | Gerenciamento da agenda | Prioritário | ✅ | 🧪✅ | UC18 |
 | RF018 | Bloqueio de agenda | Prioritário | ✅ | 🧪🟡 | UC19 |
 | RF019 | Criação de prontuários | Prioritário | ❌ | ❌ | UC20 |
@@ -117,19 +117,19 @@ Status por camada — legenda em `README.md`. Regras detalhadas: `04-regras-de-n
 
 ### RF014 — Recibos de sessões
 - **Entrada:** Sessão. Regra RN-57. Saída: recibo para download/impressão.
-- **API ❌** — será uma classe QuestPDF em `Features/Documents` (fase Documentos, depois do Financeiro). **Front ❌.**
+- **API ✅** — `GET /api/v1/documents/receipts/{paymentId}`: PDF (QuestPDF) com valor por extenso, só para pagamento recebido (RN-57). Extra: declaração de comparecimento `GET /documents/attendance/{sessionId}`. **Front ❌.**
 
 ### RF015 — Relatório de sessões
 - **Conteúdo:** dados da sessão (data, horário, paciente, status, observações) + pagamento (valor, status, método). **Filtros:** período, status da sessão, status do pagamento. Regra RN-63.
-- **API ❌** (QuestPDF, fase Documentos) · **Front ❌.**
+- **API ✅** (`GET /api/v1/documents/sessions-report?from&to&sessionStatus&paymentStatus&psychologistId`, PDF com totais; observações só das sessões do próprio psicólogo) · **Front ❌.**
 - Nota: o requisito cita status de sessão "Agendada, Concluída, Cancelada", mas o enum `SessionStatus` tem Scheduled/InProgress/Completed/NoShow; "Cancelada" hoje está no `ScheduleStatus`. Ver `05-modelo-de-dados.md`.
 
 ### RF015-B — Relatório de feedback de pacientes
-- **Conteúdo:** dados do paciente + feedbacks agrupados por sessão (data/horário). **Filtros:** Paciente\*, período (fim opcional). Regra RN-64. **API ❌ · Front ❌.**
+- **Conteúdo:** dados do paciente + feedbacks agrupados por sessão (data/horário). **Filtros:** Paciente\*, período (fim opcional). Regra RN-64. **API ✅** (`GET /api/v1/documents/feedback-report`, só sessões do psicólogo logado, com média) · **Front ❌.**
 
 ### RF016 — Geração de laudos
 - **Campos:** Paciente\*, Motivo\*, Modelo de laudo\* (sistema fornece modelos). Baseado nas anotações das sessões; formato personalizável. Regra RN-62.
-- **API ❌** (QuestPDF + entidade de laudo M-08, fase Documentos) · **Front ❌.**
+- **API ✅** — `/api/v1/psychological-reports`: laudo ou relatório psicológico (modelos da Resolução CFP 06/2019) com rascunho editável, finalização (todas as seções obrigatórias) e PDF; opção de incluir resumo das sessões. Só o psicólogo autor acessa. **Front ❌.**
 
 ### RF017 — Gerenciamento da agenda
 - Visualizar todas as atividades (sessões, bloqueios, horários livres), modos diário/semanal/mensal, clicar num horário para agendar ou bloquear.
