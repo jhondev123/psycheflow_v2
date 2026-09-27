@@ -121,6 +121,48 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "patients",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    company_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    full_name = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
+                    cpf = table.Column<string>(type: "character(11)", fixedLength: true, maxLength: 11, nullable: false),
+                    email = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
+                    phone = table.Column<string>(type: "character varying(11)", maxLength: 11, nullable: false),
+                    birth_date = table.Column<DateOnly>(type: "date", nullable: true),
+                    status = table.Column<int>(type: "integer", nullable: false),
+                    address_zip_code = table.Column<string>(type: "character(8)", fixedLength: true, maxLength: 8, nullable: true),
+                    address_street = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: true),
+                    address_number = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
+                    address_complement = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    address_neighborhood = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    address_city = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    address_state = table.Column<string>(type: "character(2)", fixedLength: true, maxLength: 2, nullable: true),
+                    notes = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    user_id = table.Column<Guid>(type: "uuid", nullable: true),
+                    deleted_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    updated_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_patients", x => x.id);
+                    table.ForeignKey(
+                        name: "fk_patients_asp_net_users_user_id",
+                        column: x => x.user_id,
+                        principalTable: "users",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "fk_patients_companies_company_id",
+                        column: x => x.company_id,
+                        principalTable: "companies",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "psychologists",
                 columns: table => new
                 {
@@ -270,6 +312,23 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "ix_patients_company_id_cpf",
+                table: "patients",
+                columns: new[] { "company_id", "cpf" },
+                unique: true,
+                filter: "deleted_at IS NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_patients_company_id_full_name",
+                table: "patients",
+                columns: new[] { "company_id", "full_name" });
+
+            migrationBuilder.CreateIndex(
+                name: "ix_patients_user_id",
+                table: "patients",
+                column: "user_id");
+
+            migrationBuilder.CreateIndex(
                 name: "ix_psychologist_working_hours_psychologist_id",
                 table: "psychologist_working_hours",
                 column: "psychologist_id");
@@ -334,6 +393,9 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
         {
             migrationBuilder.DropTable(
                 name: "company_settings");
+
+            migrationBuilder.DropTable(
+                name: "patients");
 
             migrationBuilder.DropTable(
                 name: "psychologist_working_hours");

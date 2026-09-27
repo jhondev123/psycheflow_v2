@@ -240,6 +240,87 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                     b.ToTable("companies", (string)null);
                 });
 
+            modelBuilder.Entity("Psycheflow.Api.Features.Patients.Patient", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateOnly?>("BirthDate")
+                        .HasColumnType("date")
+                        .HasColumnName("birth_date");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("company_id");
+
+                    b.Property<string>("Cpf")
+                        .IsRequired()
+                        .HasMaxLength(11)
+                        .HasColumnType("character(11)")
+                        .HasColumnName("cpf")
+                        .IsFixedLength();
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("email");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
+                        .HasColumnName("full_name");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("notes");
+
+                    b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasMaxLength(11)
+                        .HasColumnType("character varying(11)")
+                        .HasColumnName("phone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_patients");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_patients_user_id");
+
+                    b.HasIndex("CompanyId", "Cpf")
+                        .IsUnique()
+                        .HasDatabaseName("ix_patients_company_id_cpf")
+                        .HasFilter("deleted_at IS NULL");
+
+                    b.HasIndex("CompanyId", "FullName")
+                        .HasDatabaseName("ix_patients_company_id_full_name");
+
+                    b.ToTable("patients", (string)null);
+                });
+
             modelBuilder.Entity("Psycheflow.Api.Features.Psychologists.Psychologist", b =>
                 {
                     b.Property<Guid>("Id")
@@ -498,6 +579,82 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
 
                     b.Navigation("Settings")
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Psycheflow.Api.Features.Patients.Patient", b =>
+                {
+                    b.HasOne("Psycheflow.Api.Features.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_patients_companies_company_id");
+
+                    b.HasOne("Psycheflow.Api.Features.Users.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_patients_asp_net_users_user_id");
+
+                    b.OwnsOne("Psycheflow.Api.Features.Patients.Address", "Address", b1 =>
+                        {
+                            b1.Property<Guid>("PatientId")
+                                .HasColumnType("uuid")
+                                .HasColumnName("id");
+
+                            b1.Property<string>("City")
+                                .IsRequired()
+                                .HasMaxLength(100)
+                                .HasColumnType("character varying(100)")
+                                .HasColumnName("address_city");
+
+                            b1.Property<string>("Complement")
+                                .HasMaxLength(100)
+                                .HasColumnType("character varying(100)")
+                                .HasColumnName("address_complement");
+
+                            b1.Property<string>("Neighborhood")
+                                .IsRequired()
+                                .HasMaxLength(100)
+                                .HasColumnType("character varying(100)")
+                                .HasColumnName("address_neighborhood");
+
+                            b1.Property<string>("Number")
+                                .IsRequired()
+                                .HasMaxLength(20)
+                                .HasColumnType("character varying(20)")
+                                .HasColumnName("address_number");
+
+                            b1.Property<string>("State")
+                                .IsRequired()
+                                .HasMaxLength(2)
+                                .HasColumnType("character(2)")
+                                .HasColumnName("address_state")
+                                .IsFixedLength();
+
+                            b1.Property<string>("Street")
+                                .IsRequired()
+                                .HasMaxLength(150)
+                                .HasColumnType("character varying(150)")
+                                .HasColumnName("address_street");
+
+                            b1.Property<string>("ZipCode")
+                                .IsRequired()
+                                .HasMaxLength(8)
+                                .HasColumnType("character(8)")
+                                .HasColumnName("address_zip_code")
+                                .IsFixedLength();
+
+                            b1.HasKey("PatientId");
+
+                            b1.ToTable("patients");
+
+                            b1.WithOwner()
+                                .HasForeignKey("PatientId")
+                                .HasConstraintName("fk_patients_patients_id");
+                        });
+
+                    b.Navigation("Address");
                 });
 
             modelBuilder.Entity("Psycheflow.Api.Features.Psychologists.Psychologist", b =>
