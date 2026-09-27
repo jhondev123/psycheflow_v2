@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Time.Testing;
 using Npgsql;
 using Psycheflow.Api.Common.Persistence;
 using Psycheflow.Api.IntegrationTests.Infrastructure;
@@ -34,7 +33,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
     private Respawner? _respawner;
 
-    public FakeTimeProvider Clock { get; } = new(DefaultNow);
+    public TestClock Clock { get; } = new(DefaultNow);
 
     public async ValueTask InitializeAsync()
     {
@@ -55,7 +54,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
     public async Task ResetAsync()
     {
-        Clock.SetUtcNow(DefaultNow);
+        Clock.UtcNow = DefaultNow;
 
         await using var connection = new NpgsqlConnection(_postgres.GetConnectionString());
         await connection.OpenAsync();

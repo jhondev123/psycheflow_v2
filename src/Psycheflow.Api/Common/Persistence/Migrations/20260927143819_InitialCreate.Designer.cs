@@ -12,7 +12,7 @@ using Psycheflow.Api.Common.Persistence;
 namespace Psycheflow.Api.Common.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260927142152_InitialCreate")]
+    [Migration("20260927143819_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -243,6 +243,61 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                     b.ToTable("companies", (string)null);
                 });
 
+            modelBuilder.Entity("Psycheflow.Api.Features.Psychologists.Psychologist", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("Approach")
+                        .HasColumnType("integer")
+                        .HasColumnName("approach");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("company_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<string>("LicenseNumber")
+                        .IsRequired()
+                        .HasMaxLength(9)
+                        .HasColumnType("character varying(9)")
+                        .HasColumnName("license_number");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(11)
+                        .HasColumnType("character varying(11)")
+                        .HasColumnName("phone");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_psychologists");
+
+                    b.HasIndex("CompanyId")
+                        .HasDatabaseName("ix_psychologists_company_id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_psychologists_user_id")
+                        .HasFilter("deleted_at IS NULL");
+
+                    b.ToTable("psychologists", (string)null);
+                });
+
             modelBuilder.Entity("Psycheflow.Api.Features.Users.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -446,6 +501,25 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
 
                     b.Navigation("Settings")
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Psycheflow.Api.Features.Psychologists.Psychologist", b =>
+                {
+                    b.HasOne("Psycheflow.Api.Features.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_psychologists_companies_company_id");
+
+                    b.HasOne("Psycheflow.Api.Features.Users.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_psychologists_users_user_id");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Psycheflow.Api.Features.Users.User", b =>

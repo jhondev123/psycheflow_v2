@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Psycheflow.Api.Common.Auth;
+using Psycheflow.Api.Common.Domain;
 using Psycheflow.Api.Features.Companies;
+using Psycheflow.Api.Features.Psychologists;
 using Psycheflow.Api.Features.Users;
 
 namespace Psycheflow.Api.Common.Persistence;
@@ -33,9 +35,14 @@ internal static class DevData
 
         var hasher = new PasswordHasher<User>();
         AddUser(db, hasher, company.Id, "Administrador Demo", "admin@psycheflow.dev", Roles.Admin);
-        AddUser(db, hasher, company.Id, "Ana Souza", "ana@psycheflow.dev", Roles.Admin, Roles.Psychologist);
-        AddUser(db, hasher, company.Id, "Bruno Lima", "bruno@psycheflow.dev", Roles.Psychologist);
+        User ana = AddUser(db, hasher, company.Id, "Ana Souza", "ana@psycheflow.dev", Roles.Admin, Roles.Psychologist);
+        User bruno = AddUser(db, hasher, company.Id, "Bruno Lima", "bruno@psycheflow.dev", Roles.Psychologist);
         AddUser(db, hasher, company.Id, "Gestão Demo", "gestao@psycheflow.dev", Roles.Manager);
+
+        db.Psychologists.Add(Psychologist.Create(
+            ana.Id, company.Id, LicenseNumber.Create("06/123456").Value, ApproachType.CognitiveBehavioral, Phone.Create("(45) 99911-2233").Value));
+        db.Psychologists.Add(Psychologist.Create(
+            bruno.Id, company.Id, LicenseNumber.Create("06/654321").Value, ApproachType.Psychoanalysis, Phone.Create("(45) 99944-5566").Value));
 
         await db.SaveChangesAsync(cancellationToken);
     }

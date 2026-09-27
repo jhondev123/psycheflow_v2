@@ -10,10 +10,10 @@ public sealed class InfrastructureTests(ApiFactory factory) : IntegrationTest(fa
     [Fact]
     public async Task Health_WithDatabaseUp_ReturnsHealthy()
     {
-        HttpResponseMessage response = await Client.GetAsync("/health", TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await Client.GetAsync("/health", Ct);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
-        (await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)).ShouldBe("Healthy");
+        (await response.Content.ReadAsStringAsync(Ct)).ShouldBe("Healthy");
     }
 
     [Fact]
@@ -27,7 +27,7 @@ public sealed class InfrastructureTests(ApiFactory factory) : IntegrationTest(fa
     [Fact]
     public async Task ProtectedRoute_WithoutToken_Returns401ProblemDetails()
     {
-        HttpResponseMessage response = await Client.GetAsync("/api/v1/rota-inexistente", TestContext.Current.CancellationToken);
+        HttpResponseMessage response = await Client.GetAsync("/api/v1/rota-inexistente", Ct);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
         response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
