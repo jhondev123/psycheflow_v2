@@ -1,4 +1,3 @@
-appsettings.json
 ## Visual Studio
 .vs/
 .vscode/
@@ -56,7 +55,6 @@ Generated Files/
 *Migrations/*Designer.cs
 
 ## Configuration and secrets
-appsettings.*.json
 secrets.json
 .env
 .env.*
@@ -94,3 +92,9 @@ lcov.info
 *.pidb
 *.pdb
 *.mdb
+
+## Segredos locais (use .env.example como modelo)
+.env
+
+## Cobertura de testes
+coverage/

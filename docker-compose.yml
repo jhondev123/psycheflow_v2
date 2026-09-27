@@ -1,26 +1,41 @@
+# Ambiente de desenvolvimento.
+#   docker compose up -d          -> banco + API (http://localhost:8080/scalar)
+#   docker compose up -d db       -> só o banco (API via `dotnet run`)
+# Copie .env.example para .env antes do primeiro uso.
+name: psycheflow
+
 services:
-  postgres:
-    image: postgres:16
-    container_name: postgres_dev
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: YourStrong@Password123
-      POSTGRES_DB: app_dev_db
+      POSTGRES_DB: ${POSTGRES_DB:-psycheflow}
+      POSTGRES_USER: ${POSTGRES_USER:-psycheflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no .env}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - dev-network
+      - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
 
-networks:
-  dev-network:
-    driver: bridge
+  api:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ConnectionStrings__Postgres: Host=db;Port=5432;Database=${POSTGRES_DB:-psycheflow};Username=${POSTGRES_USER:-psycheflow};Password=${POSTGRES_PASSWORD}
+      Jwt__Key: ${JWT_KEY:?Defina JWT_KEY no .env}
+      Database__MigrateOnStartup: "true"
+      Cors__AllowedOrigins__0: ${FRONT_URL:-http://localhost:5173}
+    ports:
+      - "${API_PORT:-8080}:8080"
 
 volumes:
-  postgres_data:
+  postgres-data:

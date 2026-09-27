@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Psycheflow.Api/Psycheflow.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Psycheflow.Api.IntegrationTests/Psycheflow.Api.IntegrationTests.csproj" />
+    <Project Path="tests/Psycheflow.Api.UnitTests/Psycheflow.Api.UnitTests.csproj" />
+  </Folder>
+</Solution>

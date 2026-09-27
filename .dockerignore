@@ -1,0 +1,14 @@
+**/bin
+**/obj
+**/.vs
+**/.vscode
+**/.idea
+**/*.user
+.git
+.github
+tests
+TestResults
+coverage
+Psycheflow.Api
+Psycheflow.Api.Tests
+.env
