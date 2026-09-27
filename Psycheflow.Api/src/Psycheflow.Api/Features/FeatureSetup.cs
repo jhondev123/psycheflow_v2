@@ -1,6 +1,9 @@
 using System.Globalization;
 using System.Reflection;
 using FluentValidation;
+using Psycheflow.Api.Features.Ai;
+using Psycheflow.Api.Features.Ai.Assistant;
+using Psycheflow.Api.Features.Ai.Providers;
 using Psycheflow.Api.Features.Auth;
 using Psycheflow.Api.Features.Companies;
 using Psycheflow.Api.Features.Documents;
@@ -47,6 +50,9 @@ public static class FeatureSetup
         services.AddScoped<DocumentHeaderFactory>();
         services.AddScoped<PsychologicalReportAccess>();
         services.AddScoped<MedicalRecordAccess>();
+        services.AddScoped<AiAssistant>();
+        services.AddScoped<ClinicalContextLoader>();
+        services.AddAiProviders();
 
         PdfSetup.Configure();
 
@@ -72,7 +78,8 @@ public static class FeatureSetup
             .MapRecurrencesEndpoints()
             .MapDocumentsEndpoints()
             .MapPsychologicalReportsEndpoints()
-            .MapMedicalRecordsEndpoints();
+            .MapMedicalRecordsEndpoints()
+            .MapAiEndpoints();
 
         return api;
     }

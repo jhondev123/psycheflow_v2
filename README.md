@@ -1,7 +1,7 @@
 # Psycheflow
 
-ERP para clínicas de psicologia e psicólogos autônomos: pacientes, agenda, sessões e, nas próximas etapas, financeiro,
-documentos (recibos, relatórios, laudos), prontuários e sugestões com IA.
+ERP para clínicas de psicologia e psicólogos autônomos: pacientes, agenda, sessões, financeiro, documentos (recibos,
+relatórios, laudos), prontuários e sugestões com IA.
 
 Trabalho de Conclusão de Curso — **Centro Universitário FAG** (Cascavel/PR).
 Autores: Jhonattan Curtarelli, Matheus Augusto e Matheus Mantovani.
@@ -31,9 +31,11 @@ As decisões e seus motivos estão em [`docs/ai/08-plano-reestruturacao.md`](doc
 ## Situação atual
 
 - **API:** conta e login (JWT), usuários e perfis, configurações da clínica, psicólogos e expediente, pacientes, agenda,
-  bloqueios e ciclo de vida completo das sessões — com isolamento por empresa e sigilo das anotações clínicas.
+  bloqueios e ciclo de vida das sessões, pagamentos e recorrência, documentos em PDF (QuestPDF), laudos, prontuários com
+  anexos e assistente de IA (Claude, OpenAI ou Gemini, com dados pseudonimizados) — com isolamento por empresa e sigilo
+  das anotações clínicas.
 - **Front:** telas de agenda, pacientes, sessões, horários, perfil e painel (mock).
-- **Próximos passos:** integrar o front com a API → financeiro e recorrência → documentos (QuestPDF) → prontuários → IA.
+- **Próximos passos:** painel e rate limiting na API → integrar o front com a API (removendo o mock) → notificações.
   Veja o backlog em [`docs/ai/07-status-e-backlog.md`](docs/ai/07-status-e-backlog.md).
 
 ## Como rodar

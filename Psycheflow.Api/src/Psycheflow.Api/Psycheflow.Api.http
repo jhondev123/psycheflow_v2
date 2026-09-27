@@ -80,3 +80,38 @@ Authorization: Bearer {{token}}
 Content-Type: application/json
 
 { "startDate": "2026-12-24", "endDate": "2026-12-26", "reason": "Recesso" }
+
+### IA: configuração da clínica (provedores disponíveis = chaves configuradas no servidor)
+GET {{api}}/ai/settings
+Authorization: Bearer {{token}}
+
+### IA: habilitar (Admin/Manager; exige aceite dos termos)
+PUT {{api}}/ai/settings
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "isEnabled": true,
+  "provider": "Claude",
+  "shareSessionNotes": true,
+  "shareFeedbacks": true,
+  "shareMedicalRecords": false,
+  "acceptTerms": true
+}
+
+### IA: organizar as anotações de uma sessão (dados pseudonimizados)
+POST {{api}}/ai/suggestions/session-notes
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "sessionId": "{{session.response.body.id}}",
+  "draft": "Chegou ansiosa, falou sobre o trabalho e a dificuldade para dormir. Treinamos respiração."
+}
+
+### IA: próximos passos para o paciente
+POST {{api}}/ai/suggestions/next-steps
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "patientId": "{{patients.response.body.items[0].id}}" }

@@ -101,13 +101,13 @@ Claims do token: `sub`, `email`, `name`, `role` (1..n), `company_id`, `psycholog
 ## Sessões
 | Método | Rota | Descrição |
 |--------|------|-----------|
-| POST | `/sessions` | `{ patientId, date, startTime, durationMinutes?, psychologistId?, notes? }` → 201. Duração padrão da empresa; 15–240 min. Regras: não no passado, dentro do expediente, sem conflito, paciente ativo. |
+| POST | `/sessions` | `{ patientId, date, startTime, durationMinutes?, psychologistId?, notes?, price? }` → 201. Duração padrão da empresa; 15–240 min. Regras: não no passado, dentro do expediente, sem conflito, paciente ativo. Cria o pagamento **pendente** com `price` ou o valor padrão da empresa (D-08). |
 | GET | `/sessions?from=&to=&timeFrom=&timeTo=&patientId=&psychologistId=&status=&page=&pageSize=` | `from` obrigatório. `PagedResponse<SessionListItem>` |
 | GET | `/sessions/{id}` | `SessionResponse` (anotações/feedback só para o psicólogo da sessão) |
 | PUT | `/sessions/{id}` | `{ patientId, notes? }` (`notes` nulo mantém; só o psicólogo da sessão altera notas) |
 | POST | `/sessions/{id}/confirm` | confirma o horário |
 | POST | `/sessions/{id}/reschedule` | `{ date, startTime, reason, durationMinutes? }` (mantém a duração se omitida) |
-| POST | `/sessions/{id}/cancel` | `{ reason }` — libera o horário |
+| POST | `/sessions/{id}/cancel` | `{ reason }` — libera o horário e cancela o pagamento pendente |
 | POST | `/sessions/{id}/complete` | `{ notes, feedbackScore (0–10), feedbackComment? }` — só o psicólogo da sessão, após o início |
 | POST | `/sessions/{id}/no-show` | falta, após o início |
 | DELETE | `/sessions/{id}` | exclusão lógica (não permitida para concluída) |
@@ -116,7 +116,89 @@ Sessão concluída, cancelada ou com falta não aceita mais alterações (409). 
 Admin/Manager acessam todas da empresa, sem ver anotações/feedback.
 
 `SessionResponse`: `{ id, scheduleId, psychologistId, psychologistName, patientId, patientName, date, startTime, endTime, durationMinutes,
-status, scheduleStatus, notes?, feedbackScore?, feedbackComment?, cancellationReason?, rescheduleReason?, clinicalNotesVisible, createdAt, updatedAt? }`.
+status, scheduleStatus, notes?, feedbackScore?, feedbackComment?, cancellationReason?, rescheduleReason?, clinicalNotesVisible, recurrenceId?,
+payment?: { id, amount, status }, createdAt, updatedAt? }`.
+
+## Financeiro — pagamentos (RF011–RF013)
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| GET | `/payments?from=&to=&patientId=&psychologistId=&status=&page=&pageSize=` | `PagedResponse<PaymentResponse>` (período = data da sessão). Psicólogo vê só os das próprias sessões. |
+| GET | `/payments/{id}` | `PaymentResponse` |
+| PUT | `/payments/{id}` | `{ amount }` — só pendente (pago → 409) |
+| POST | `/payments/{id}/pay` | `{ method (CreditCard, DebitCard, Pix), paidAt?, amount?, notes? }` — só de sessão **concluída**; `paidAt` padrão = hoje, não pode ser anterior a hoje (RN-53) |
+| POST | `/payments/{id}/cancel` | `{ reason }` — cancela o pendente ou estorna o pago |
+
+`PaymentResponse`: `{ id, sessionId, patientId, patientName, psychologistId, sessionDate, sessionStartTime, sessionStatus, amount, status (Pending, Paid,
+Cancelled), method?, paidAt?, notes?, cancellationReason? }`.
+
+## Recorrência (RF010)
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| POST | `/recurrences` | `{ patientId, type (Weekly, Monthly), startDate, startTime, endDate?, durationMinutes?, price?, psychologistId? }` → `201 RecurrenceGenerationResponse`. Gera as sessões dos próximos **3 meses** (D-05); datas indisponíveis são **puladas** e devolvidas com o motivo. |
+| GET | `/recurrences?patientId=&activeOnly=` | `RecurrenceResponse[]` |
+| POST | `/recurrences/{id}/extend` | gera mais 3 meses a partir de `generatedUntil` |
+| POST | `/recurrences/{id}/end` | `{ reason? }` — encerra e cancela as sessões futuras ainda agendadas |
+
+`RecurrenceGenerationResponse`: `{ recurrence: { id, patientId, psychologistId, type, startDate, endDate?, startTime, durationMinutes, price,
+generatedUntil, isActive, endReason? }, scheduled: date[], skipped: [{ date, code, reason }] }`.
+
+## Documentos em PDF (RF014, RF015, RF015-B)
+Respostas `application/pdf` (download com nome de arquivo). Cabeçalho comum: clínica, psicólogo e CRP.
+
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| GET | `/documents/receipts/{paymentId}` | Recibo de pagamento **pago** (valor por extenso, RN-57) |
+| GET | `/documents/attendance/{sessionId}` | Declaração de comparecimento de sessão concluída |
+| GET | `/documents/sessions-report?from=&to=&sessionStatus=&paymentStatus=&psychologistId=` | Relatório de sessões com totais (RN-63) |
+| GET | `/documents/feedback-report?patientId=&from=&to=` | Feedbacks 0–10 do paciente com o psicólogo logado, com média (RN-64) |
+
+## Laudos e relatórios psicológicos (RF016)
+Somente o psicólogo autor acessa. Modelos da Resolução CFP 06/2019: `PsychologicalReport` (laudo) e `PsychologicalStatement` (relatório).
+
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| POST | `/psychological-reports` | `{ patientId, template, purpose, demand?, procedure?, analysis?, conclusion?, includeSessionSummary }` → 201 (rascunho) |
+| GET | `/psychological-reports?patientId=` | lista do psicólogo logado |
+| GET | `/psychological-reports/{id}` | `PsychologicalReportResponse` |
+| PUT | `/psychological-reports/{id}` | edita o rascunho (finalizado → 409) |
+| POST | `/psychological-reports/{id}/finalize` | exige todas as seções; depois não pode ser editado |
+| DELETE | `/psychological-reports/{id}` | exclui rascunho |
+| GET | `/psychological-reports/{id}/pdf` | PDF (rascunho sai com marca d'água "RASCUNHO") |
+
+## Prontuários (RF019, RF020)
+Somente psicólogos; cada registro é acessível apenas ao psicólogo autor (sigilo, D-02).
+
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| POST | `/medical-records` | `{ patientId, title, content }` → 201 |
+| GET | `/medical-records?patientId=&search=&from=&to=&page=&pageSize=` | busca por paciente, período e palavra-chave (título/conteúdo) |
+| GET | `/medical-records/{id}` | registro + anexos |
+| PUT | `/medical-records/{id}` | `{ title, content }` |
+| DELETE | `/medical-records/{id}` | exclusão lógica |
+| POST | `/medical-records/{id}/attachments` | `multipart/form-data`, campo `file`: PDF/JPG/PNG até 10 MB (validado pela assinatura do arquivo) → 201 |
+| GET | `/medical-records/{id}/attachments/{attachmentId}` | download |
+| DELETE | `/medical-records/{id}/attachments/{attachmentId}` | remove o anexo |
+
+## Assistente de IA (RF021)
+Provedores: **Claude, OpenAI e Gemini**, com chaves só no servidor (`Ai__Claude__ApiKey`, `Ai__OpenAi__ApiKey`, `Ai__Gemini__ApiKey`).
+Os dados enviados são **pseudonimizados** (sem nome, CPF, e-mail, telefone ou endereço; idade no lugar da data de nascimento).
+
+| Método | Rota | Quem | Descrição |
+|--------|------|------|-----------|
+| GET | `/ai/settings` | todos | `AiSettingsResponse` (sem registro = desabilitada) |
+| PUT | `/ai/settings` | Admin/Manager | `{ isEnabled, provider (Claude, OpenAi, Gemini), shareSessionNotes, shareFeedbacks, shareMedicalRecords, acceptTerms }`. Habilitar exige `acceptTerms = true` (422), ao menos um dado liberado (`ai.no_data_shared`) e provedor com chave no servidor (422 em `provider`). Desabilitar revoga o aceite. |
+| POST | `/ai/suggestions/session-notes` | psicólogo da sessão | `{ sessionId, draft? }` → registro de evolução organizado a partir do rascunho (ou das notas salvas); usa as 3 sessões anteriores como contexto |
+| POST | `/ai/suggestions/patient-analysis` | psicólogo | `{ patientId }` → análise do acompanhamento |
+| POST | `/ai/suggestions/next-steps` | psicólogo | `{ patientId }` → sugestões de próximos passos |
+
+`AiSettingsResponse`: `{ isEnabled, provider, shareSessionNotes, shareFeedbacks, shareMedicalRecords, consentAcceptedAt?, availableProviders[] }`.
+`AiSuggestionResponse`: `{ suggestion (Markdown), provider, model, generatedAt, disclaimer }`.
+
+Contexto das sugestões: só sessões concluídas e prontuários **do psicólogo logado** com o paciente, e só os tipos de dado liberados pela
+clínica (últimas 10 sessões e 10 registros; textos cortados em 4.000 caracteres). Erros com `code`: `ai.disabled` (403),
+`ai.only_psychologists` (403), `ai.not_your_session` (403), `ai.data_not_shared` (403), `ai.empty_draft` (422),
+`ai.insufficient_data` (422), `ai.refused` (422, recusa do provedor), `ai.provider_failed` / `ai.provider_unavailable` (503).
+Cada sugestão gerada fica registrada em `ai_usage_logs` (sem o conteúdo).
 
 ## Infra
 | Método | Rota | Descrição |
@@ -129,13 +211,4 @@ status, scheduleStatus, notes?, feedbackScore?, feedbackComment?, cancellationRe
 
 | Fase | Método | Rota | Requisito |
 |------|--------|------|-----------|
-| Financeiro | GET | `/payments?patientId=&from=&to=&status=` | RF012 |
-| Financeiro | POST | `/payments/{id}/pay` · `/payments/{id}/cancel` | RF011, RN-44 |
-| Financeiro | PUT | `/payments/{id}` | RF013 |
-| Financeiro | POST | `/recurrences` | RF010 |
-| Documentos | GET | `/sessions/{id}/receipt` (PDF) | RF014 |
-| Documentos | GET | `/reports/sessions?…` · `/reports/feedback?patientId=&from=&to=` (PDF) | RF015, RF015-B |
-| Documentos | POST/GET | `/psychological-reports` (+ `/{id}/pdf`) | RF016 |
-| Prontuários | CRUD | `/medical-records` (+ anexos) | RF019, RF020 |
-| IA | GET/PUT/POST | `/ai/settings`, `/ai/suggestions` | RF021 |
 | Painel | GET | `/dashboard` (resumo do dia/semana) | RC-06 |

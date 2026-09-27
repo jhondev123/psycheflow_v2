@@ -121,6 +121,39 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "ai_settings",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    company_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    is_enabled = table.Column<bool>(type: "boolean", nullable: false),
+                    provider = table.Column<int>(type: "integer", nullable: false),
+                    share_session_notes = table.Column<bool>(type: "boolean", nullable: false),
+                    share_feedbacks = table.Column<bool>(type: "boolean", nullable: false),
+                    share_medical_records = table.Column<bool>(type: "boolean", nullable: false),
+                    consent_accepted_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    consent_accepted_by_user_id = table.Column<Guid>(type: "uuid", nullable: true),
+                    created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    updated_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_ai_settings", x => x.id);
+                    table.ForeignKey(
+                        name: "fk_ai_settings_asp_net_users_consent_accepted_by_user_id",
+                        column: x => x.consent_accepted_by_user_id,
+                        principalTable: "users",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
+                        name: "fk_ai_settings_companies_company_id",
+                        column: x => x.company_id,
+                        principalTable: "companies",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "patients",
                 columns: table => new
                 {
@@ -276,6 +309,44 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                         principalTable: "users",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ai_usage_logs",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    company_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    user_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    patient_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    kind = table.Column<int>(type: "integer", nullable: false),
+                    provider = table.Column<int>(type: "integer", nullable: false),
+                    model = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    prompt_characters = table.Column<int>(type: "integer", nullable: false),
+                    created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    updated_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_ai_usage_logs", x => x.id);
+                    table.ForeignKey(
+                        name: "fk_ai_usage_logs_asp_net_users_user_id",
+                        column: x => x.user_id,
+                        principalTable: "users",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "fk_ai_usage_logs_companies_company_id",
+                        column: x => x.company_id,
+                        principalTable: "companies",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "fk_ai_usage_logs_patients_patient_id",
+                        column: x => x.patient_id,
+                        principalTable: "patients",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -588,6 +659,32 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "ix_ai_settings_company_id",
+                table: "ai_settings",
+                column: "company_id",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "ix_ai_settings_consent_accepted_by_user_id",
+                table: "ai_settings",
+                column: "consent_accepted_by_user_id");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_ai_usage_logs_company_id_created_at",
+                table: "ai_usage_logs",
+                columns: new[] { "company_id", "created_at" });
+
+            migrationBuilder.CreateIndex(
+                name: "ix_ai_usage_logs_patient_id",
+                table: "ai_usage_logs",
+                column: "patient_id");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_ai_usage_logs_user_id",
+                table: "ai_usage_logs",
+                column: "user_id");
+
+            migrationBuilder.CreateIndex(
                 name: "ix_medical_record_attachments_medical_record_id",
                 table: "medical_record_attachments",
                 column: "medical_record_id");
@@ -765,6 +862,12 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "ai_settings");
+
+            migrationBuilder.DropTable(
+                name: "ai_usage_logs");
+
             migrationBuilder.DropTable(
                 name: "company_settings");
 

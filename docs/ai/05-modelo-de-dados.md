@@ -106,11 +106,82 @@ Configuração de cada tabela: `Features/<Módulo>/<Entidade>Configuration.cs`.
 | feedback_comment | varchar(1000) NULL | |
 | cancellation_reason | varchar(500) NULL | RN-43 |
 | reschedule_reason | varchar(500) NULL | último motivo de reagendamento (RN-42) |
+| recurrence_id | uuid NULL FK → recurrences | sessão gerada por recorrência (RF010) |
 | deleted_at, created_at, updated_at | timestamptz | |
 
+### payments (RF011–RF014)
+| Coluna | Tipo | Obs |
+|--------|------|-----|
+| id | uuid PK | |
+| company_id | uuid NN FK | tenant |
+| session_id | uuid NN FK → sessions | **único** entre os não excluídos: um pagamento por sessão; nasce Pendente com a sessão (D-08, RN-50) |
+| amount | numeric(12,2) NN | CHECK ≥ 0; valor informado → recorrência → valor padrão da empresa (RN-51) |
+| status | int NN | `PaymentStatus`: 0 Pending, 1 Paid, 2 Cancelled (RN-54) |
+| method | int NULL | `PaymentMethod`: 0 CreditCard, 1 DebitCard, 2 Pix (RN-52) |
+| paid_at | date NULL | não anterior a hoje (RN-53) |
+| notes | varchar(500) NULL | |
+| cancellation_reason | varchar(500) NULL | cancelamento ou estorno |
+| deleted_at, created_at, updated_at | timestamptz | índice (company_id, status) |
+
+### recurrences (RF010)
+| Coluna | Tipo | Obs |
+|--------|------|-----|
+| id | uuid PK | |
+| company_id, psychologist_id, patient_id | uuid NN FK | |
+| type | int NN | `RecurrenceType`: 0 Weekly, 1 Monthly (dia da semana/do mês vêm de `start_date`) |
+| start_date, end_date | date (end NULL) | |
+| start_time, duration_minutes | time, int | |
+| price | numeric(12,2) NN | CHECK ≥ 0; valor das sessões geradas |
+| generated_until | date NN | sessões criadas até esta data (janela de 3 meses, D-05) |
+| is_active | bool NN | encerrar cancela as sessões futuras agendadas |
+| end_reason | varchar(500) NULL | |
+| deleted_at, created_at, updated_at | timestamptz | |
+
+### psychological_reports (RF016)
+| Coluna | Tipo | Obs |
+|--------|------|-----|
+| id | uuid PK | |
+| company_id, patient_id, psychologist_id | uuid NN FK | só o psicólogo autor acessa |
+| template | int NN | `PsychologicalReportTemplate`: 0 PsychologicalReport (laudo), 1 PsychologicalStatement (relatório) — CFP 06/2019 |
+| purpose, demand, procedure, analysis, conclusion | varchar(10000) NULL | seções do documento; todas obrigatórias para finalizar |
+| include_session_summary | bool NN | inclui no PDF o resumo das sessões |
+| status | int NN | 0 Draft, 1 Finalized (finalizado não é editado) |
+| finalized_at | timestamptz NULL | |
+| deleted_at, created_at, updated_at | timestamptz | |
+
+### medical_records + medical_record_attachments (RF019, RF020)
+| Coluna | Tipo | Obs |
+|--------|------|-----|
+| id | uuid PK | |
+| company_id, patient_id, psychologist_id | uuid NN FK | índice (psychologist_id, patient_id); só o autor acessa (D-02) |
+| title | varchar(200) NN | |
+| content | varchar(50000) NN | Markdown |
+| deleted_at, created_at, updated_at | timestamptz | exclusão lógica preserva a guarda do prontuário |
+
+`medical_record_attachments`: `id`, `medical_record_id` (FK), `file_name varchar(200)`, `content_type varchar(100)`, `size_bytes bigint`,
+auditoria/soft delete. O arquivo fica fora do banco, no `IFileStorage` (volume `Storage:Path`, D-06), na chave
+`{company}/medical-records/{record}/{attachment}`.
+
+### ai_settings (RF021, D-07)
+| Coluna | Tipo | Obs |
+|--------|------|-----|
+| id | uuid PK | |
+| company_id | uuid NN FK, **único** | uma configuração por clínica; sem registro = IA desabilitada |
+| is_enabled | bool NN | |
+| provider | int NN | `AiProvider`: 0 Claude, 1 OpenAi, 2 Gemini (chaves só no servidor) |
+| share_session_notes, share_feedbacks, share_medical_records | bool NN | dados que podem ir para a IA (pseudonimizados) |
+| consent_accepted_at | timestamptz NULL | aceite dos termos; limpo ao desabilitar |
+| consent_accepted_by_user_id | uuid NULL FK → users | quem aceitou |
+| created_at, updated_at | timestamptz | |
+
+### ai_usage_logs (RF021 — auditoria LGPD)
+`id`, `company_id`, `user_id`, `patient_id` (FKs), `kind int` (`AiSuggestionKind`: 0 SessionNotes, 1 PatientAnalysis, 2 NextSteps),
+`provider int`, `model varchar(100)`, `prompt_characters int`, `created_at`. Uma linha por sugestão gerada; **não** guarda o prompt
+nem a resposta. Índice (company_id, created_at).
+
 ### Removidas na reestruturação
-`documents`, `document_fields` (FastReport), `config`, `config_ai` (chave/valor genérico, substituído por `company_settings`),
-`payments` (volta redesenhada na fase Financeiro), `psychologists_hours` (virou `psychologist_working_hours`).
+`documents`, `document_fields` (FastReport), `config`, `config_ai` (chave/valor genérico, substituídos por `company_settings` e
+`ai_settings`), `psychologists_hours` (virou `psychologist_working_hours`). `payments` foi redesenhada (acima).
 
 ## Relacionamentos
 
@@ -124,6 +195,12 @@ Configuração de cada tabela: `Features/<Módulo>/<Entidade>Configuration.cs`.
 | psychologists → schedules, sessions | 1:N | Restrict |
 | schedules → sessions | 1:0..1 | Restrict |
 | patients → sessions | 1:N | Restrict |
+| sessions → payments | 1:0..1 (um ativo) | Restrict |
+| recurrences → sessions | 1:N | Restrict |
+| psychologists, patients → recurrences, psychological_reports, medical_records | 1:N | Restrict |
+| medical_records → medical_record_attachments | 1:N | Restrict |
+| companies → ai_settings | 1:0..1 | Restrict |
+| users, patients → ai_usage_logs | 1:N | Restrict |
 
 Exclusões são lógicas: na prática nenhum registro de negócio é apagado fisicamente.
 
@@ -139,26 +216,18 @@ erDiagram
   psychologists ||--o{ schedules : agenda
   schedules ||--o| sessions : "SESSION"
   patients ||--o{ sessions : atende
+  sessions ||--o| payments : cobra
+  recurrences ||--o{ sessions : gera
+  patients ||--o{ recurrences : tem
+  patients ||--o{ psychological_reports : "laudo/relatório"
+  patients ||--o{ medical_records : prontuario
+  psychologists ||--o{ medical_records : autor
+  medical_records ||--o{ medical_record_attachments : anexos
+  companies ||--o| ai_settings : "uso de IA"
+  patients ||--o{ ai_usage_logs : auditoria
 ```
 
 ---
 
-## Mudanças previstas (fases seguintes)
-
-### M-05 · payments (RF011–RF014)
-`id`, `company_id`, `session_id` (FK, um pagamento ativo por sessão), `amount numeric(12,2)`, `status int` (`PaymentStatus { Pending, Paid, Cancelled }`),
-`method int NULL` (`PaymentMethod { CreditCard, DebitCard, Pix }`), `paid_at date NULL`, `notes`, auditoria/soft delete.
-Depende de D-08 (pagamento nasce pendente com a sessão?).
-
-### M-06 · recurrences (RF010)
-`id`, `company_id`, `psychologist_id`, `patient_id`, `type int` (`Weekly`, `Monthly`), `day_of_week NULL`, `day_of_month NULL`,
-`start_time`, `duration_minutes`, `session_price`, `start_date`, `end_date NULL`, `is_active`; `sessions.recurrence_id NULL`. Depende de D-05.
-
-### M-07 · medical_records + medical_record_attachments (RF019, RF020)
-Prontuário por paciente e psicólogo, com anexos (arquivo fora do banco — D-06).
-
-### M-08 · psychological_reports (RF016)
-Laudo: paciente, psicólogo, motivo, conteúdo; PDF gerado sob demanda (QuestPDF).
-
-### M-09 · IA (RF021)
-Tabela própria de consentimento/configuração (`ai_settings`: habilitado, tipos de dado liberados, provedor) — D-07.
+## Mudanças previstas
+Notificações (RF024–RF026) ficaram para depois; não há tabela prevista ainda.

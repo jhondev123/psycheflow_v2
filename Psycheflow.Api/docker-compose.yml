@@ -35,6 +35,10 @@ services:
       Database__MigrateOnStartup: "true"
       Cors__AllowedOrigins__0: ${FRONT_URL:-http://localhost:5173}
       Storage__Path: /app/storage
+      # IA (opcional): só os provedores com chave ficam disponíveis para as clínicas.
+      Ai__Claude__ApiKey: ${ANTHROPIC_API_KEY:-}
+      Ai__OpenAi__ApiKey: ${OPENAI_API_KEY:-}
+      Ai__Gemini__ApiKey: ${GEMINI_API_KEY:-}
     ports:
       - "${API_PORT:-8080}:8080"
     volumes:

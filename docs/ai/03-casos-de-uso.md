@@ -36,7 +36,7 @@ Ator principal em todos: **Psicólogo** (logado), exceto quando indicado.
 | UC19 | Lançar bloqueio de agenda | RF018 | ✅ | 🧪🟡 |
 | UC20 | Criar prontuário | RF019 | ✅ | ❌ |
 | UC21 | Gerenciar prontuários | RF020 | ✅ | ❌ |
-| UC22 | Usar sugestões de IA | RF021 | ❌ | ❌ |
+| UC22 | Usar sugestões de IA | RF021 | ✅ | ❌ |
 | UC23 | Login | RF022 | ✅ | 🧪 |
 | UC24 | Logout | RF023 | ✅ | 🧪 |
 | UC25 | Criar conta (empresa + responsável) | RC-01 | ✅ | 🧪🟡 |
@@ -204,9 +204,9 @@ Ator principal em todos: **Psicólogo** (logado), exceto quando indicado.
 ## IA
 
 ### UC22 — Usar sugestões com IA
-- **Pré:** logado; aceitou os termos e escolheu os dados liberados (RN-67).
-- **Fluxo:** Configurações → ativa IA → marca dados permitidos (feedbacks, sessões, laudos, prontuários) → sistema passa a mostrar sugestões em registro de sessão, laudos, relatórios e análise de padrões.
-- **Alternativo:** nenhum dado selecionado ou consentimento revogado → IA desativada.
+- **Pré:** a clínica habilitou a IA (Admin/Manager aceitou os termos, escolheu o provedor e os dados liberados — RN-67); usuário é psicólogo.
+- **Fluxo:** Configurações → ativa IA → escolhe provedor (Claude, OpenAI ou Gemini) e dados permitidos (anotações, feedbacks, prontuários) → aceita os termos. O psicólogo passa a ver os botões de sugestão: ao concluir/editar a sessão (organizar anotações), e na ficha do paciente (análise do acompanhamento e próximos passos). A resposta vem em Markdown com aviso de revisão; o psicólogo copia o que quiser.
+- **Alternativo:** nenhum dado selecionado → não habilita (422); desabilitar revoga o aceite (403 `ai.disabled` nas sugestões); sem dados clínicos autorizados → 422 `ai.insufficient_data`; provedor fora do ar → 503; recusa do provedor → 422 `ai.refused`.
 - **Status:** API ❌ (tabelas `Config`/`ConfigAi` prontas). Front ❌.
 
 ## Acesso

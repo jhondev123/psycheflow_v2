@@ -15,6 +15,7 @@ public static class ErrorHttpExtensions
         ErrorType.Forbidden => StatusCodes.Status403Forbidden,
         ErrorType.Unauthorized => StatusCodes.Status401Unauthorized,
         ErrorType.Locked => StatusCodes.Status423Locked,
+        ErrorType.Unavailable => StatusCodes.Status503ServiceUnavailable,
         _ => StatusCodes.Status500InternalServerError,
     };
 
@@ -47,6 +48,7 @@ public static class ErrorHttpExtensions
         ErrorType.Forbidden => "Acesso negado.",
         ErrorType.Unauthorized => "Não autenticado.",
         ErrorType.Locked => "Recurso bloqueado.",
+        ErrorType.Unavailable => "Serviço indisponível.",
         _ => "Erro inesperado.",
     };
 }

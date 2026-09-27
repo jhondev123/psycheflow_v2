@@ -1,23 +1,23 @@
 # 07 — Status, dívidas técnicas e backlog
 
-Retrato em 27/09/2026, após a reestruturação da API (`08-plano-reestruturacao.md`). Legenda em `README.md`.
+Retrato em 27/09/2026, após a fase de IA da API. Legenda em `README.md`.
 
 ## Resumo
 
-- **Backend:** reescrito em .NET 10 com Vertical Slices + Minimal APIs, testado (127 testes unitários + 94 de integração
-  contra Postgres real, **92% de cobertura de linhas**). Cobre o **core** completo: conta/login, usuários, configurações,
-  psicólogos e expediente, **pacientes**, **agenda**, **bloqueios** e todo o **ciclo de vida das sessões**.
-  Ainda não existem: financeiro, recorrência, documentos (recibo/relatórios/laudo), prontuários e IA.
-- **Frontend:** UI bem acabada, mas **100% mock em localStorage** — não fala com a API. Os tipos do front ainda seguem o
-  contrato **antigo** (enums numéricos, `SessionStatus.InProgress`, rotas sem `/api/v1`).
-- **Maior gap agora:** integrar o front com a API (DT-01). Depois: Financeiro → Documentos → Prontuários → IA.
+- **Backend:** .NET 10 com Vertical Slices + Minimal APIs, testado (203 testes unitários + 153 de integração contra Postgres real,
+  **93,7% de cobertura de linhas**). Cobre **todos os requisitos funcionais obrigatórios** (RF001–RF023): core (conta, usuários,
+  configurações, psicólogos, pacientes, agenda, sessões), **financeiro e recorrência**, **documentos em PDF** (recibo, declaração,
+  relatórios, laudos/relatórios psicológicos), **prontuários com anexos** e **assistente de IA** (Claude, OpenAI ou Gemini).
+  Faltam só os desejáveis: notificações (RF024–RF026, adiadas pelo dev) e o painel (RC-06).
+- **Frontend:** UI bem acabada, mas **100% mock em localStorage** — não fala com a API. D-09 decidido: **remover o mock** e integrar.
+- **Maior gap agora:** integrar o front com a API (DT-01).
 
 ### Cobertura dos requisitos oficiais (RF001–RF026, 27 itens)
 
 | Situação | API | Ponta a ponta (API + Front integrados) |
 |---|---|---|
-| ✅ Completo | 13 — RF001–RF009, RF017, RF018, RF022, RF023 (RF004/RF007 sem a parte de pagamento, que é do Financeiro) | 0 (front não integrado) |
-| ❌ Nada | 14 — RF010–RF016, RF015-B, RF019–RF021, RF024–RF026 | — |
+| ✅ Completo | 24 — RF001–RF023 (com RF015-B) | 0 (front não integrado) |
+| ❌ Nada | 3 — RF024–RF026 (notificações, desejáveis — adiadas) | — |
 
 ## Matriz por módulo
 
@@ -29,11 +29,12 @@ Retrato em 27/09/2026, após a reestruturação da API (`08-plano-reestruturacao
 | Pacientes | ✅ | 🧪🟡 | Integrar; endereço com CEP (ViaCEP), status, CPF somente leitura na edição |
 | Agenda e bloqueios | ✅ | 🧪✅ | Integrar (`GET /agenda`); bloqueio por dias inteiros e motivo na tela |
 | Sessões | ✅ | 🧪🟡 | Integrar; reagendar/cancelar com motivo, nota 0–10, Markdown, duração padrão |
-| Financeiro + recorrência | ❌ | ❌ | Tudo (M-05, M-06; D-05, D-08) |
-| Documentos (recibo, relatórios, laudo) | ❌ | 🧪🟡 | QuestPDF + telas (M-08) |
-| Prontuários | ❌ | ❌ | Tudo (M-07; D-06) |
-| IA | ❌ | ❌ | Tudo (M-09; D-07) |
-| Notificações | ❌ | ❌ | Desejável |
+| Financeiro + recorrência | ✅ | ❌ | Telas: pagamentos (lançar/estornar), recorrência (criar/estender/encerrar) |
+| Documentos (recibo, declaração, relatórios, laudos) | ✅ | 🧪🟡 | Telas para baixar os PDFs e editar/finalizar laudos |
+| Prontuários | ✅ | ❌ | Tela de registros com busca e upload de anexos |
+| IA | ✅ | ❌ | Configuração (Admin/Manager) e botões de sugestão (sessão e ficha do paciente) |
+| Painel (RC-06) | ❌ | 🧪✅ | `GET /dashboard` (resumo do dia/semana) |
+| Notificações | ❌ | ❌ | Desejável — adiada pelo dev |
 | Testes | ✅ | ❌ | Front: Vitest nas funções de `lib/` |
 
 ## Divergências entre documentos e código
@@ -46,7 +47,8 @@ Retrato em 27/09/2026, após a reestruturação da API (`08-plano-reestruturacao
 | V-04 | Requisito: feedback = nota 0–10 | ✅ `feedback_score` 0–10 (+ comentário opcional) | Resolvido |
 | V-05 | Status de sessão Agendada/Concluída/Cancelada | ✅ `SessionStatus = Scheduled, Completed, Cancelled, NoShow` | Resolvido (D-04) |
 | V-06 | "CPF validado na tela, sem coluna" | ✅ coluna `cpf` com VO | Resolvido (M-01) |
-| V-07 | UC4: pagamento pendente criado com a sessão; UC11: pagamento lançado após conclusão | Sem pagamentos ainda | D-08 (fase Financeiro) |
+| V-07 | UC4: pagamento pendente criado com a sessão; UC11: pagamento lançado após conclusão | ✅ as duas coisas (D-08) | Resolvido |
+| V-08 | RF021: opt-in **do psicólogo**, sugestões também em laudos/relatórios | Consentimento **da clínica** (Admin/Manager); sugestões em anotações, análise e próximos passos | Decisão do dev (D-07) |
 
 ## Dívidas técnicas e bugs
 
@@ -56,7 +58,8 @@ Retrato em 27/09/2026, após a reestruturação da API (`08-plano-reestruturacao
 | DT-01 | Alta | Front inteiro | Não consome a API; tipos no contrato antigo | `src/lib/api.ts` (fetch + token + ProblemDetails), atualizar `types/index.ts` para o contrato novo (camelCase, enums texto), trocar as ações do `AppStore` uma a uma |
 | DT-22 | Média | Deploy | Sem ambiente publicado (RNF004); segredos de produção por variável de ambiente | Publicar a imagem Docker + Postgres gerenciado com backup |
 | DT-23 | Baixa | API | Sem rate limiting no login (há lockout por conta) | `AddRateLimiter` por IP em `/auth/*` |
-| DT-24 | Baixa | LGPD | Sem trilha de auditoria de acesso a dados clínicos nem criptografia em repouso | Avaliar na fase Prontuários (RD001) |
+| DT-24 | Baixa | LGPD | Prontuário/laudos só para o autor e uso da IA auditado (`ai_usage_logs`), mas sem trilha de **leitura** de dados clínicos nem criptografia em repouso | Log de acesso aos prontuários; criptografia do volume/disco no deploy |
+| DT-26 | Baixa | IA | A pseudonimização não detecta nomes de terceiros citados nas anotações (familiares, colegas) | Orientar nos termos de uso; avaliar detecção de nomes próprios |
 | DT-25 | Baixa | Skills do Claude (`psycheflow-feature`, `psycheflow-tests`) | Descrevem as convenções antigas (controllers, `GenericResponseDto`, SQLite) | Atualizar para as convenções de `01-visao-geral.md` |
 
 ### Resolvidas na reestruturação (27/09/2026)
@@ -80,36 +83,28 @@ agendamento sem checar se o psicólogo existe/é da empresa.
 | D-03 | Formato do CRP? | ✅ `^\d{2}/\d{4,6}$` (ex.: `06/12345`). |
 | D-04 | "Cancelada" vira valor de `SessionStatus`? | ✅ `Scheduled, Completed, Cancelled, NoShow`, setado junto com o Schedule. |
 | D-10 | Estrutura da API | ✅ Vertical Slice + Minimal APIs + .NET 10 + TDD (`08`). |
-| D-05 | Recorrência gera sessões até quando? | ⏳ Sugestão: 3 meses à frente; botão "estender" depois. |
-| D-06 | Onde guardar anexos do prontuário? | ⏳ Sugestão: volume/pasta configurável (`Storage:Path`) fora do wwwroot; S3-compatível no deploy. |
-| D-07 | Qual provedor de IA? | ⏳ Sugestão: um só, via HTTP, com consentimento por tipo de dado. |
-| D-08 | Pagamento nasce pendente ao criar a sessão (UC4) e é "lançado"/pago depois (UC11)? | ⏳ Sugestão: sim. |
-| D-09 | O front mantém o modo mock (exigência do Projeto Web) ou é integrado? | ⏳ Sugestão: integrar mantendo o mock atrás de `VITE_USE_MOCK` só se o professor exigir. |
+| D-05 | Recorrência gera sessões até quando? | ✅ Janelas de 3 meses + "estender"; datas indisponíveis são puladas e informadas. |
+| D-06 | Onde guardar anexos do prontuário? | ✅ Disco/volume (`Storage:Path`) atrás da abstração `IFileStorage` (trocável por S3 no deploy). |
+| D-07 | Qual provedor de IA? | ✅ Claude, OpenAI e Gemini (SDKs oficiais) atrás de `IAiTextGenerator`; chaves no servidor; a clínica habilita, escolhe provedor e dados liberados; dados pseudonimizados; usos: anotações da sessão, análise do paciente e próximos passos. |
+| D-08 | Pagamento nasce pendente ao criar a sessão (UC4) e é "lançado"/pago depois (UC11)? | ✅ Sim. |
+| D-09 | O front mantém o modo mock (exigência do Projeto Web) ou é integrado? | ✅ Remover o mock e integrar com a API. |
+| D-11 | Notificações (RF024–RF026)? | ⏸️ Deixadas para depois pelo dev. |
 
 ## Backlog priorizado
 
-> Fases 0–5 (reestruturação + core) concluídas — ver `08-plano-reestruturacao.md`.
+> Fases 0–5 (reestruturação + core) e as fases de Financeiro/Recorrência, Documentos, Prontuários e IA estão concluídas na API —
+> ver o progresso em `08-plano-reestruturacao.md`.
 
-### Fase 6 — Integração do front (DT-01, D-09)
-- [ ] `lib/api.ts` (base URL por env, Bearer, tratamento de ProblemDetails → mensagens por campo)
+### Próximo — Painel e endurecimento da API
+- [ ] `GET /dashboard` (RC-06): sessões do dia/semana, pendências de pagamento
+- [ ] Rate limiting por IP em `/auth/*` e nas sugestões de IA (DT-23)
+
+### Integração do front (DT-01, D-09)
+- [ ] `lib/api.ts` (base URL por env, Bearer, ProblemDetails → mensagens por campo) e remoção do mock
 - [ ] Tipos novos em `types/index.ts`; login/registro reais; troca de senha obrigatória
-- [ ] Pacientes, Agenda, Sessões, Horários e Perfil via API; tela de Configurações
-- [ ] Reagendar/cancelar com motivo, conclusão com nota 0–10 e Markdown, bloqueio por dias inteiros
+- [ ] Pacientes, Agenda, Sessões, Horários, Perfil e Configurações via API
+- [ ] Pagamentos, recorrência, documentos (PDFs), laudos, prontuários (com anexos) e IA (configuração + sugestões)
 
-### Fase 7 — Financeiro e recorrência (RF010–RF013; D-05, D-08)
-- [ ] M-05 `payments` + criação pendente na sessão (RN-50), pagar/editar/cancelar (RN-52 a RN-56)
-- [ ] Cancelamento da sessão cancela o pagamento; pago bloqueia o cancelamento (RN-43/44)
-- [ ] M-06 recorrência semanal/mensal gerando sessões com as regras de disponibilidade
-
-### Fase 8 — Documentos com QuestPDF (RF014–RF016)
-- [ ] `Features/Documents` com layout comum (clínica, psicólogo, CRP)
-- [ ] Recibo (RN-57), relatório de sessões (RN-63), relatório de feedback (RN-64), laudo (M-08, RN-62)
-
-### Fase 9 — Prontuários (RF019–RF020, RD001, RD002; D-06)
-- [ ] M-07 + upload de anexos + busca; auditoria de acesso (DT-24)
-
-### Fase 10 — IA (RF021; D-07)
-- [ ] Consentimento e dados liberados; sugestões para anotações de sessão, depois laudos/relatórios
-
-### Fase 11 — Desejáveis (RF024–RF026, RNF004)
-- [ ] Lembretes por e-mail; painel (RC-06); deploy + backup (DT-22); rate limiting (DT-23)
+### Desejáveis
+- [ ] Notificações (RF024–RF026) — adiadas (D-11)
+- [ ] Deploy + backup (DT-22)

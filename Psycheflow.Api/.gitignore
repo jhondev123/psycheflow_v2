@@ -58,6 +58,7 @@ Generated Files/
 secrets.json
 .env
 .env.*
+!.env.example
 
 ## Dotnet tools
 .dotnet-tools/

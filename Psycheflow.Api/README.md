@@ -73,6 +73,7 @@ src/Psycheflow.Api/
 │  ├─ Errors/                  # handler global de exceções (500 sem vazar detalhes)
 │  ├─ OpenApi/                 # documento OpenAPI + esquema Bearer
 │  ├─ Persistence/             # AppDbContext, filtros globais, auditoria, migrations, DevData
+│  ├─ Storage/                 # IFileStorage (anexos em disco/volume)
 │  ├─ Time/                    # ClinicClock (TimeProvider + fuso da clínica)
 │  └─ Validation/              # regras FluentValidation reutilizáveis (pt-BR)
 └─ Features/
@@ -82,7 +83,13 @@ src/Psycheflow.Api/
    ├─ Psychologists/           # perfil, CRP, expediente (working hours)
    ├─ Patients/                # CRUD, CPF, endereço, filtros
    ├─ Scheduling/              # TimeSlot, Schedule, disponibilidade, bloqueios, agenda
-   └─ Sessions/                # ciclo de vida da sessão (agendar → concluir/cancelar/falta)
+   ├─ Sessions/                # ciclo de vida da sessão (agendar → concluir/cancelar/falta)
+   ├─ Payments/                # pagamento pendente por sessão, lançar, editar, cancelar/estornar
+   ├─ Recurrences/             # sessões semanais/mensais em janelas de 3 meses
+   ├─ Documents/               # PDFs QuestPDF: recibo, declaração, relatórios de sessões e feedback
+   ├─ PsychologicalReports/    # laudos e relatórios psicológicos (CFP 06/2019) + PDF
+   ├─ MedicalRecords/          # prontuários com anexos (só o psicólogo autor)
+   └─ Ai/                      # assistente de IA: Claude/OpenAI/Gemini, pseudonimização, auditoria
 tests/
 ├─ Psycheflow.Api.UnitTests/         # domínio, value objects, validators
 └─ Psycheflow.Api.IntegrationTests/  # HTTP de ponta a ponta contra Postgres (Testcontainers)
@@ -93,7 +100,7 @@ tests/
 | Tema | Decisão |
 |------|---------|
 | Execução do caso de uso | Endpoint (minimal API) → **Handler** (classe simples, injetada) → `Result<T>`. Sem MediatR. |
-| Erros | Regras de negócio retornam `Result`/`Error` (sem exceções) e viram **ProblemDetails** (RFC 9457): 401/403/404/409/422/423. Exceções = 500. |
+| Erros | Regras de negócio retornam `Result`/`Error` (sem exceções) e viram **ProblemDetails** (RFC 9457): 401/403/404/409/422/423/503. Exceções = 500. |
 | Validação | **FluentValidation** por request, executada por um endpoint filter → 422 com erros por campo (camelCase). |
 | Domínio | Entidades com construtor privado e métodos que protegem invariantes (ex.: `Session.Complete`, `Psychologist.SetWorkingHours`). Value objects: `Cpf`, `Phone`, `LicenseNumber`, `TimeSlot`. |
 | Acesso a dados | Handlers usam o `AppDbContext` diretamente (sem repositórios). Configuração EF fica no módulo da entidade. |
@@ -103,6 +110,7 @@ tests/
 | Datas | Agenda em data/hora **locais da clínica** (`date` + `time`); auditoria em UTC (`timestamptz`). "Agora" vem sempre do `TimeProvider`. |
 | Concorrência na agenda | Escritas na agenda de um psicólogo usam `pg_advisory_xact_lock` dentro da transação para impedir dupla marcação simultânea. |
 | Nomes | Rotas `/api/v1/<recurso-kebab>`, JSON camelCase (enums como texto), banco snake_case. |
+| IA | Porta `IAiTextGenerator` com um adaptador por SDK oficial (Anthropic, OpenAI, Google.GenAI). Chaves só no servidor; a clínica escolhe o provedor e os dados liberados; o texto é **pseudonimizado** antes de sair e cada uso é auditado. Nos testes, um provedor falso substitui os reais. |
 
 ---
 
@@ -180,6 +188,12 @@ Documentação completa e interativa em `/scalar` (ambiente Development).
 | Pacientes | `POST /patients` · `GET /patients` · `GET/PUT /patients/{id}` |
 | Agenda | `GET /agenda` · `POST /schedule-blocks` · `DELETE /schedule-blocks/{id}` |
 | Sessões | `POST /sessions` · `GET /sessions` · `GET/PUT/DELETE /sessions/{id}` · `POST /sessions/{id}/confirm`, `/reschedule`, `/cancel`, `/complete`, `/no-show` |
+| Pagamentos | `GET /payments` · `GET/PUT /payments/{id}` · `POST /payments/{id}/pay`, `/cancel` |
+| Recorrência | `POST /recurrences` · `GET /recurrences` · `POST /recurrences/{id}/extend`, `/end` |
+| Documentos (PDF) | `GET /documents/receipts/{paymentId}` · `/documents/attendance/{sessionId}` · `/documents/sessions-report` · `/documents/feedback-report` |
+| Laudos | `POST/GET /psychological-reports` · `GET/PUT/DELETE /psychological-reports/{id}` · `POST .../{id}/finalize` · `GET .../{id}/pdf` |
+| Prontuários | `POST/GET /medical-records` · `GET/PUT/DELETE /medical-records/{id}` · `POST .../{id}/attachments` · `GET/DELETE .../attachments/{attachmentId}` |
+| IA | `GET/PUT /ai/settings` · `POST /ai/suggestions/session-notes`, `/patient-analysis`, `/next-steps` |
 | Saúde | `GET /health` (fora de `/api/v1`) |
 
 ---
@@ -193,6 +207,10 @@ Documentação completa e interativa em `/scalar` (ambiente Development).
 | `Jwt:Issuer` / `Jwt:Audience` / `Jwt:ExpirationMinutes` | Emissor, audiência e validade do token (padrão 120 min) |
 | `Cors:AllowedOrigins` | Origens do front permitidas |
 | `Database:MigrateOnStartup` | Aplica migrations ao subir |
+| `Storage:Path` | Pasta dos anexos de prontuário (no compose, volume `api-storage`) |
+| `Ai:Claude:ApiKey` / `Ai:OpenAi:ApiKey` / `Ai:Gemini:ApiKey` | Chaves dos provedores de IA (opcionais; só os configurados aparecem para as clínicas). No compose: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY` no `.env` |
+| `Ai:<Provedor>:Model` | Modelo de cada provedor (padrões: `claude-opus-5`, `gpt-5`, `gemini-2.5-pro`) |
+| `Ai:MaxOutputTokens` / `Ai:TimeoutSeconds` | Limite da resposta (16000) e tempo máximo por sugestão (120 s) |
 
 - Nada de produção é versionado. Em produção, configure por variáveis de ambiente (`Jwt__Key`, `ConnectionStrings__Postgres`, …).
 - `appsettings.Development.json` e `.env.example` contêm apenas valores de desenvolvimento local.

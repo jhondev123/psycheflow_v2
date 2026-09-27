@@ -14,6 +14,7 @@ public sealed class ErrorHttpExtensionsTests
     [InlineData(ErrorType.Forbidden, StatusCodes.Status403Forbidden)]
     [InlineData(ErrorType.Unauthorized, StatusCodes.Status401Unauthorized)]
     [InlineData(ErrorType.Locked, StatusCodes.Status423Locked)]
+    [InlineData(ErrorType.Unavailable, StatusCodes.Status503ServiceUnavailable)]
     public void ToStatusCode_MapsEachErrorType(ErrorType type, int expectedStatus) =>
         type.ToStatusCode().ShouldBe(expectedStatus);
 

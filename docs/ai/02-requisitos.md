@@ -33,7 +33,7 @@ Status por camada — legenda em `README.md`. Regras detalhadas: `04-regras-de-n
 | RF018 | Bloqueio de agenda | Prioritário | ✅ | 🧪🟡 | UC19 |
 | RF019 | Criação de prontuários | Prioritário | ✅ | ❌ | UC20 |
 | RF020 | Gerenciamento de prontuários | Prioritário | ✅ | ❌ | UC21 |
-| RF021 | Sugestões com IA | Prioritário* | ❌ | ❌ | UC22 |
+| RF021 | Sugestões com IA | Prioritário* | ✅ | ❌ | UC22 |
 | RF022 | Login do psicólogo | Prioritário | ✅ | 🧪 | UC23 |
 | RF023 | Logout | Prioritário | ✅ | 🧪 | UC24 |
 | RF024 | Notificação de sessões para o paciente | Desejável | ❌ | ❌ | — |
@@ -50,7 +50,7 @@ Status por camada — legenda em `README.md`. Regras detalhadas: `04-regras-de-n
 
 > Coluna API atualizada em 27/09/2026, após a reestruturação (`08-plano-reestruturacao.md`). A coluna Front continua descrevendo o **mock**; o front ainda não consome a API (DT-01).
 
-\* RF021 está marcado como prioritário no documento, mas depende de quase tudo (sessões, prontuários, laudos). Na prática é o último item do backlog.
+\* RF021 está marcado como prioritário no documento, mas depende de quase tudo (sessões, prontuários). Foi implementado por último na API (fase de IA, ver `08`).
 
 ---
 
@@ -149,7 +149,7 @@ Status por camada — legenda em `README.md`. Regras detalhadas: `04-regras-de-n
 
 ### RF021 — Sugestões com IA
 - Opt-in do psicólogo + escolha dos dados permitidos (feedbacks, sessões, prontuários, laudos). Sugestões em: registro de sessões, laudos, relatórios, padrões de comportamento. Regra RN-67.
-- **API ❌** — as tabelas genéricas `Config`/`ConfigAi` foram removidas; a IA terá configuração própria na sua fase (M-09). **Front ❌.**
+- **API ✅** — provedores **Claude, OpenAI e Gemini** atrás de uma porta genérica (`IAiTextGenerator`), chaves só no servidor. A clínica (Admin/Manager) habilita, escolhe o provedor e os dados liberados (anotações de sessão, feedbacks, prontuários) e registra o aceite (`ai_settings`, D-07). Sugestões para o psicólogo: **anotações da sessão** (registro de evolução a partir do rascunho), **análise do paciente** e **próximos passos** — prompt padrão em pt-BR, dados **pseudonimizados** (sem nome, CPF, e-mail, telefone, endereço; idade no lugar da data de nascimento) e auditoria em `ai_usage_logs`. Laudos/relatórios ficaram fora por decisão do dev. **Front ❌.**
 
 ### RF022 — Login do psicólogo
 - **Campos:** usuário (e-mail) e senha. Regras: RN-10, RN-11, RN-12.

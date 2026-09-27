@@ -12,3 +12,19 @@ public enum ApproachType
     Systemic = 6,
     Other = 7,
 }
+
+public static class ApproachLabels
+{
+    public static string Of(ApproachType approach) => approach switch
+    {
+        ApproachType.NotInformed => "Não informada",
+        ApproachType.CognitiveBehavioral => "Cognitivo-comportamental",
+        ApproachType.Psychoanalysis => "Psicanálise",
+        ApproachType.Behavioral => "Comportamental",
+        ApproachType.Humanistic => "Humanista",
+        ApproachType.Gestalt => "Gestalt-terapia",
+        ApproachType.Systemic => "Sistêmica",
+        ApproachType.Other => "Outra",
+        _ => approach.ToString(),
+    };
+}

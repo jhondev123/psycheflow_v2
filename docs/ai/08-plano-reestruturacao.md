@@ -1,6 +1,6 @@
 # 08 — Plano de reestruturação da API (Clean + Vertical Slice)
 
-> Status: **Fases 0–5 concluídas** em 27/09/2026. O trabalho foi feito na branch `refactor/vertical-slices` do repo `Psycheflow.Api` e depois importado, com histórico, para o monorepo `jhondev123/psycheflow_v2` (pasta `Psycheflow.Api/`). Próximas fases no backlog de `07-status-e-backlog.md`.
+> Status: **Fases 0–5 concluídas** em 27/09/2026, seguidas pelas fases 6–9 (Financeiro/Recorrência, Documentos, Prontuários e IA). O trabalho foi feito na branch `refactor/vertical-slices` do repo `Psycheflow.Api` e depois importado, com histórico, para o monorepo `jhondev123/psycheflow_v2` (pasta `Psycheflow.Api/`). Próximas fases no backlog de `07-status-e-backlog.md`.
 
 ## Progresso
 
@@ -12,8 +12,12 @@
 | 3 — Pacientes | ✅ Concluída | Create/List/Get/Update. VO `Cpf`, endereço owned (colunas `address_*`), CPF único por empresa (índice filtrado + tratamento de corrida), busca por nome/e-mail (ILIKE) ou CPF completo, filtro por status, paginação. Filtro por última sessão entra na Fase 4. |
 | 4 — Agenda e sessões | ✅ Concluída | Agenda (`GET /agenda`), bloqueios por horário ou dias inteiros (tudo-ou-nada), sessões com ciclo de vida completo (criar, listar, detalhar, editar, confirmar, reagendar, cancelar, concluir, falta, excluir). `TimeSlot` + `ScheduleAvailability` (RN-30/33/34/38/40) com advisory lock do Postgres contra dupla marcação concorrente. Sigilo: anotações/feedback só para o psicólogo da sessão. Filtro de pacientes por última sessão. Cobertura de linhas: 92%. |
 | 5 — Corte (cutover) | ✅ Concluída | Projeto antigo, `.sln`, testes vazios e `env.appsettings.json` removidos (ficam no histórico do git); migration única `InitialCreate`; README do repo da API e arquivo `.http`; docs `01`, `02`, `03`, `04`, `05`, `06`, `07` e `CLAUDE.md` atualizados. Segredos antigos continuam no histórico do git e devem ser considerados comprometidos. |
+| 6 — Financeiro e recorrência | ✅ Concluída | `Payment` nasce Pendente com a sessão (D-08); pagar só sessão concluída, editar só pendente, cancelar/estornar com motivo; cancelar a sessão cancela o pagamento. `Recurrence` semanal/mensal com `RecurrencePattern` puro, janelas de 3 meses (D-05), datas indisponíveis puladas e devolvidas com o motivo, estender/encerrar. |
+| 7 — Documentos (QuestPDF) | ✅ Concluída | `Features/Documents` com layout comum (clínica, psicólogo, CRP): recibo (valor por extenso), declaração de comparecimento, relatório de sessões e de feedback. Laudos/relatórios psicológicos (CFP 06/2019) com rascunho → finalizado e PDF com marca d'água no rascunho. |
+| 8 — Prontuários | ✅ Concluída | Registros por paciente acessíveis só ao autor, busca por período/palavra-chave, anexos PDF/JPG/PNG ≤ 10 MB validados por assinatura e gravados via `IFileStorage` (volume, D-06). |
+| 9 — IA | ✅ Concluída | Porta `IAiTextGenerator` com Claude (Anthropic, `claude-opus-5` com fallback no servidor), OpenAI e Gemini via SDKs oficiais; `ai_settings` por clínica com aceite; contexto só com dados liberados e do psicólogo logado; `Pseudonymizer`; prompt padrão pt-BR; auditoria `ai_usage_logs`; testes com provedor falso (integração) e HTTP simulado (SDKs). |
 
-**Resultado:** 127 testes unitários + 94 de integração verdes · cobertura de linhas 92% · build sem warnings · `docker compose up` sobe banco + API com dados demo.
+**Resultado:** 203 testes unitários + 153 de integração verdes · cobertura de linhas 93,7% · build sem warnings · `docker compose up` sobe banco + API com dados demo.
 
 > Decisões tomadas em sessão de perguntas com o dev (grill-me). Durante a execução, decisões de arquitetura adicionais ficaram a cargo da IA (autorizado pelo dev) e estão registradas em A-29 em diante.
 
@@ -50,8 +54,13 @@
 | A-27 | Payment | Entidade `Payment` atual **não é portada**; volta redesenhada (M-05) na fase Financeiro. |
 | A-29 | Decisões da execução | `Result<T>.Success(...)` explícito quando `T` é interface; `ICurrentUser` via claims (`sub`, `company_id`, `psychologist_id`); política de fallback = Staff (seguro por padrão); `User` sem filtro automático de tenant (login); expediente como coleção owned; endereço como owned na tabela `patients`; `Session` é raiz do agregado e cria seu `Schedule`; `ScheduleAvailability` com `pg_advisory_xact_lock` contra dupla marcação; bloqueios tudo-ou-nada; concluir/falta só após o início da sessão; sessão concluída não pode ser excluída; notas nulas no PUT mantêm as atuais; validação de token com o `TimeProvider` da aplicação; ProblemDetails com `code` estável e `traceId`. |
 | A-28 | Dados iniciais | **Fim do esquema de seeders** (`Seeders/`, `ISeeder`, `DatabaseSeeder`, flag `ENV`). Dados **essenciais** (roles) via `HasData` → entram na `InitialCreate` e existem em qualquer ambiente. Dados de **demonstração** (empresa, psicólogos, pacientes, horários, sessões) via `UseAsyncSeeding` do EF Core em `Common/Persistence/DevData.cs`: idempotente e executado **só em Development** (inclui o compose). Testes de integração **não** usam dados demo: cada teste cria o que precisa (builders + Bogus); Respawn limpa tudo exceto `__EFMigrationsHistory` e a tabela de roles. |
+| A-30 | Financeiro | Um `Payment` por sessão (índice único filtrado), criado Pendente junto com a sessão (`SessionAccess.AddWithPayment`); valor: informado → recorrência → padrão da empresa. Ciclo no domínio (`Pay`, `ChangeAmount`, `Cancel`). |
+| A-31 | Recorrência | Cálculo de datas puro (`RecurrencePattern`, testável sem banco) + `RecurrenceGenerator` que reaproveita as regras de agenda (`ScheduleAvailability`) e **pula** datas indisponíveis em vez de falhar tudo. |
+| A-32 | Documentos | Um documento QuestPDF por slice, modelo montado no handler e renderizado por uma classe `IDocument`; resposta `application/pdf` com nome de arquivo. Licença QuestPDF Community (projeto acadêmico). |
+| A-33 | Arquivos | `IFileStorage` em `Common/Storage` com implementação local (`Storage:Path`, proteção contra path traversal); volume `api-storage` no compose. |
+| A-34 | IA | Porta `IAiTextGenerator` (Ports & Adapters) com um adaptador por SDK oficial; provedor disponível = chave configurada no servidor; `AiAssistant` concentra autorização, pseudonimização, timeout, recusa/falha (`ErrorType.Unavailable` → 503) e auditoria; SDKs recebem `HttpClient` do `IHttpClientFactory` (testáveis com handler simulado). |
 
-Decisões ainda pendentes (para fases futuras): D-05 (horizonte da recorrência), D-06 (armazenamento de anexos), D-07 (provedor de IA), D-08 (pagamento nasce pendente com a sessão).
+Decisões D-05 a D-09 confirmadas com o dev em 27/09/2026 (ver `07`). Notificações ficaram para depois (D-11).
 
 ## 2. Estrutura alvo
 
@@ -212,7 +221,7 @@ Endurecimento opcional (se sobrar tempo): exclusion constraint no Postgres para 
 4. Reescrever `01-visao-geral.md` (arquitetura/convenções), `05-modelo-de-dados.md`, `06-api.md`; atualizar status em `02`, `03`, `04`, `07`; atualizar `CLAUDE.md`.
 5. PR `refactor/vertical-slices` → `main` com CI verde.
 
-### Fases seguintes (fora deste plano, apenas ordem)
+### Fases seguintes (6–9 concluídas; ordem original mantida para histórico)
 6. **Financeiro + recorrência** (RF010–RF013; M-05, M-06; decidir D-05, D-08).
 7. **Documentos com QuestPDF** (RF014–RF016): `Features/Documents/` com `Common/PdfLayout` (cabeçalho com clínica, psicólogo, CRP) e um slice por documento — `SessionReceipt` (`GET /sessions/{id}/receipt`), `SessionsReport`, `FeedbackReport`, `PsychologicalReport` (entidade de laudo M-08). Testes: PDF gerado não vazio + dados do documento montados corretamente (unit no "model" do documento).
 8. **Prontuários** (RF019–RF020; D-06).

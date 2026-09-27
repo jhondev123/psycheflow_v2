@@ -12,7 +12,7 @@ using Psycheflow.Api.Common.Persistence;
 namespace Psycheflow.Api.Common.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260927202945_InitialCreate")]
+    [Migration("20260927205200_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -215,6 +215,124 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                         .HasName("pk_user_tokens");
 
                     b.ToTable("user_tokens", (string)null);
+                });
+
+            modelBuilder.Entity("Psycheflow.Api.Features.Ai.AiSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("company_id");
+
+                    b.Property<DateTimeOffset?>("ConsentAcceptedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("consent_accepted_at");
+
+                    b.Property<Guid?>("ConsentAcceptedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("consent_accepted_by_user_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_enabled");
+
+                    b.Property<int>("Provider")
+                        .HasColumnType("integer")
+                        .HasColumnName("provider");
+
+                    b.Property<bool>("ShareFeedbacks")
+                        .HasColumnType("boolean")
+                        .HasColumnName("share_feedbacks");
+
+                    b.Property<bool>("ShareMedicalRecords")
+                        .HasColumnType("boolean")
+                        .HasColumnName("share_medical_records");
+
+                    b.Property<bool>("ShareSessionNotes")
+                        .HasColumnType("boolean")
+                        .HasColumnName("share_session_notes");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_ai_settings");
+
+                    b.HasIndex("CompanyId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_ai_settings_company_id");
+
+                    b.HasIndex("ConsentAcceptedByUserId")
+                        .HasDatabaseName("ix_ai_settings_consent_accepted_by_user_id");
+
+                    b.ToTable("ai_settings", (string)null);
+                });
+
+            modelBuilder.Entity("Psycheflow.Api.Features.Ai.AiUsageLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("company_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("integer")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("Model")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("model");
+
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("patient_id");
+
+                    b.Property<int>("PromptCharacters")
+                        .HasColumnType("integer")
+                        .HasColumnName("prompt_characters");
+
+                    b.Property<int>("Provider")
+                        .HasColumnType("integer")
+                        .HasColumnName("provider");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_ai_usage_logs");
+
+                    b.HasIndex("PatientId")
+                        .HasDatabaseName("ix_ai_usage_logs_patient_id");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_ai_usage_logs_user_id");
+
+                    b.HasIndex("CompanyId", "CreatedAt")
+                        .HasDatabaseName("ix_ai_usage_logs_company_id_created_at");
+
+                    b.ToTable("ai_usage_logs", (string)null);
                 });
 
             modelBuilder.Entity("Psycheflow.Api.Features.Companies.Company", b =>
@@ -1043,6 +1161,46 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_user_tokens_users_user_id");
+                });
+
+            modelBuilder.Entity("Psycheflow.Api.Features.Ai.AiSettings", b =>
+                {
+                    b.HasOne("Psycheflow.Api.Features.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_ai_settings_companies_company_id");
+
+                    b.HasOne("Psycheflow.Api.Features.Users.User", null)
+                        .WithMany()
+                        .HasForeignKey("ConsentAcceptedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_ai_settings_asp_net_users_consent_accepted_by_user_id");
+                });
+
+            modelBuilder.Entity("Psycheflow.Api.Features.Ai.AiUsageLog", b =>
+                {
+                    b.HasOne("Psycheflow.Api.Features.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_ai_usage_logs_companies_company_id");
+
+                    b.HasOne("Psycheflow.Api.Features.Patients.Patient", null)
+                        .WithMany()
+                        .HasForeignKey("PatientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_ai_usage_logs_patients_patient_id");
+
+                    b.HasOne("Psycheflow.Api.Features.Users.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_ai_usage_logs_asp_net_users_user_id");
                 });
 
             modelBuilder.Entity("Psycheflow.Api.Features.Companies.Company", b =>

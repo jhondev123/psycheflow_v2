@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Psycheflow.Api.Common.Auth;
 using Psycheflow.Api.Common.Domain;
+using Psycheflow.Api.Features.Ai;
 using Psycheflow.Api.Features.Companies;
 using Psycheflow.Api.Features.MedicalRecords;
 using Psycheflow.Api.Features.Patients;
@@ -46,6 +47,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, ICurren
     public DbSet<MedicalRecord> MedicalRecords => Set<MedicalRecord>();
 
     public DbSet<MedicalRecordAttachment> MedicalRecordAttachments => Set<MedicalRecordAttachment>();
+
+    public DbSet<AiSettings> AiSettings => Set<AiSettings>();
+
+    public DbSet<AiUsageLog> AiUsageLogs => Set<AiUsageLog>();
 
     /// <summary>
     /// Empresa usada pelo filtro global. Sem usuário autenticado é nula e nenhum dado de empresa é retornado.

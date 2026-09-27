@@ -2,8 +2,10 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Npgsql;
 using Psycheflow.Api.Common.Persistence;
+using Psycheflow.Api.Features.Ai.Providers;
 using Psycheflow.Api.IntegrationTests.Infrastructure;
 using Respawn;
 using Respawn.Graph;
@@ -37,6 +39,9 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
     public TestClock Clock { get; } = new(DefaultNow);
 
+    /// <summary>Provedor de IA falso: os testes nunca chamam APIs externas.</summary>
+    public FakeAiTextGenerator Ai { get; } = new();
+
     public async ValueTask InitializeAsync()
     {
         await _postgres.StartAsync();
@@ -57,6 +62,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
     public async Task ResetAsync()
     {
         Clock.UtcNow = DefaultNow;
+        Ai.Reset();
 
         await using var connection = new NpgsqlConnection(_postgres.GetConnectionString());
         await connection.OpenAsync();
@@ -80,6 +86,11 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("Jwt:Key", "integration-tests-signing-key-0123456789abcdef");
         builder.UseSetting(PersistenceSetup.MigrateOnStartupKey, "true");
         builder.UseSetting("Storage:Path", _storagePath);
-        builder.ConfigureTestServices(services => services.AddSingleton<TimeProvider>(Clock));
+        builder.ConfigureTestServices(services =>
+        {
+            services.AddSingleton<TimeProvider>(Clock);
+            services.RemoveAll<IAiTextGenerator>();
+            services.AddSingleton<IAiTextGenerator>(Ai);
+        });
     }
 }

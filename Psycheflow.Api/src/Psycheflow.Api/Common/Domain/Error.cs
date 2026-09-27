@@ -8,6 +8,9 @@ public enum ErrorType
     Forbidden,
     Unauthorized,
     Locked,
+
+    /// <summary>Dependência externa (ex.: provedor de IA) indisponível ou com falha.</summary>
+    Unavailable,
 }
 
 /// <summary>
@@ -28,4 +31,6 @@ public sealed record Error(string Code, string Message, ErrorType Type, string? 
     public static Error Unauthorized(string code, string message) => new(code, message, ErrorType.Unauthorized);
 
     public static Error Locked(string code, string message) => new(code, message, ErrorType.Locked);
+
+    public static Error Unavailable(string code, string message) => new(code, message, ErrorType.Unavailable);
 }
