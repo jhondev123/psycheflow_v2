@@ -236,6 +236,28 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "psychologist_working_hours",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    day_of_week = table.Column<int>(type: "integer", nullable: false),
+                    start_time = table.Column<TimeOnly>(type: "time without time zone", nullable: false),
+                    end_time = table.Column<TimeOnly>(type: "time without time zone", nullable: false),
+                    psychologist_id = table.Column<Guid>(type: "uuid", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_psychologist_working_hours", x => x.id);
+                    table.ForeignKey(
+                        name: "fk_psychologist_working_hours_psychologists_psychologist_id",
+                        column: x => x.psychologist_id,
+                        principalTable: "psychologists",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
             migrationBuilder.InsertData(
                 table: "roles",
                 columns: new[] { "id", "concurrency_stamp", "name", "normalized_name" },
@@ -246,6 +268,11 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                     { new Guid("0199a1b0-0000-7000-8000-000000000003"), "0199a1b0-0000-7000-8000-000000000003", "Psychologist", "PSYCHOLOGIST" },
                     { new Guid("0199a1b0-0000-7000-8000-000000000004"), "0199a1b0-0000-7000-8000-000000000004", "Patient", "PATIENT" }
                 });
+
+            migrationBuilder.CreateIndex(
+                name: "ix_psychologist_working_hours_psychologist_id",
+                table: "psychologist_working_hours",
+                column: "psychologist_id");
 
             migrationBuilder.CreateIndex(
                 name: "ix_psychologists_company_id",
@@ -309,7 +336,7 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                 name: "company_settings");
 
             migrationBuilder.DropTable(
-                name: "psychologists");
+                name: "psychologist_working_hours");
 
             migrationBuilder.DropTable(
                 name: "role_claims");
@@ -325,6 +352,9 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
 
             migrationBuilder.DropTable(
                 name: "user_tokens");
+
+            migrationBuilder.DropTable(
+                name: "psychologists");
 
             migrationBuilder.DropTable(
                 name: "roles");

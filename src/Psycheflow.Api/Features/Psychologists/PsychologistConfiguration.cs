@@ -20,6 +20,15 @@ internal sealed class PsychologistConfiguration : IEntityTypeConfiguration<Psych
             .HasConversion(v => v!.Value, v => Phone.FromDatabase(v))
             .HasMaxLength(11);
 
+        builder.OwnsMany(p => p.WorkingHours, hours =>
+        {
+            hours.ToTable("psychologist_working_hours");
+            hours.WithOwner().HasForeignKey("PsychologistId");
+            hours.Property<int>("Id");
+            hours.HasKey("Id");
+        });
+        builder.Navigation(p => p.WorkingHours).HasField("_workingHours").UsePropertyAccessMode(PropertyAccessMode.Field);
+
         // Um usuário tem no máximo um perfil de psicólogo ativo.
         builder.HasIndex(p => p.UserId).IsUnique().HasFilter("deleted_at IS NULL");
         builder.HasIndex(p => p.CompanyId);

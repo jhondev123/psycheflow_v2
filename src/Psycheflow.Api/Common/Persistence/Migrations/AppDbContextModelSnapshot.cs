@@ -516,7 +516,47 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_psychologists_users_user_id");
 
+                    b.OwnsMany("Psycheflow.Api.Features.Psychologists.WorkingHoursRange", "WorkingHours", b1 =>
+                        {
+                            b1.Property<int>("Id")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("integer")
+                                .HasColumnName("id");
+
+                            NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b1.Property<int>("Id"));
+
+                            b1.Property<int>("DayOfWeek")
+                                .HasColumnType("integer")
+                                .HasColumnName("day_of_week");
+
+                            b1.Property<TimeOnly>("EndTime")
+                                .HasColumnType("time without time zone")
+                                .HasColumnName("end_time");
+
+                            b1.Property<Guid>("PsychologistId")
+                                .HasColumnType("uuid")
+                                .HasColumnName("psychologist_id");
+
+                            b1.Property<TimeOnly>("StartTime")
+                                .HasColumnType("time without time zone")
+                                .HasColumnName("start_time");
+
+                            b1.HasKey("Id")
+                                .HasName("pk_psychologist_working_hours");
+
+                            b1.HasIndex("PsychologistId")
+                                .HasDatabaseName("ix_psychologist_working_hours_psychologist_id");
+
+                            b1.ToTable("psychologist_working_hours", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("PsychologistId")
+                                .HasConstraintName("fk_psychologist_working_hours_psychologists_psychologist_id");
+                        });
+
                     b.Navigation("User");
+
+                    b.Navigation("WorkingHours");
                 });
 
             modelBuilder.Entity("Psycheflow.Api.Features.Users.User", b =>

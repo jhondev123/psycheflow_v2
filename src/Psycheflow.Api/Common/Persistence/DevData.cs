@@ -39,13 +39,24 @@ internal static class DevData
         User bruno = AddUser(db, hasher, company.Id, "Bruno Lima", "bruno@psycheflow.dev", Roles.Psychologist);
         AddUser(db, hasher, company.Id, "Gestão Demo", "gestao@psycheflow.dev", Roles.Manager);
 
-        db.Psychologists.Add(Psychologist.Create(
-            ana.Id, company.Id, LicenseNumber.Create("06/123456").Value, ApproachType.CognitiveBehavioral, Phone.Create("(45) 99911-2233").Value));
-        db.Psychologists.Add(Psychologist.Create(
-            bruno.Id, company.Id, LicenseNumber.Create("06/654321").Value, ApproachType.Psychoanalysis, Phone.Create("(45) 99944-5566").Value));
+        var anaProfile = Psychologist.Create(
+            ana.Id, company.Id, LicenseNumber.Create("06/123456").Value, ApproachType.CognitiveBehavioral, Phone.Create("(45) 99911-2233").Value);
+        var brunoProfile = Psychologist.Create(
+            bruno.Id, company.Id, LicenseNumber.Create("06/654321").Value, ApproachType.Psychoanalysis, Phone.Create("(45) 99944-5566").Value);
+        anaProfile.SetWorkingHours(WeekdayHours(new TimeOnly(8, 0), new TimeOnly(12, 0), new TimeOnly(13, 0), new TimeOnly(18, 0)));
+        brunoProfile.SetWorkingHours(WeekdayHours(new TimeOnly(9, 0), new TimeOnly(13, 0), new TimeOnly(14, 0), new TimeOnly(19, 0)));
+        db.Psychologists.AddRange(anaProfile, brunoProfile);
 
         await db.SaveChangesAsync(cancellationToken);
     }
+
+    /// <summary>Segunda a sexta, manhã e tarde.</summary>
+    private static IEnumerable<WorkingHoursRange> WeekdayHours(TimeOnly morningStart, TimeOnly morningEnd, TimeOnly afternoonStart, TimeOnly afternoonEnd) =>
+        Enumerable.Range((int)DayOfWeek.Monday, 5).SelectMany(day => new[]
+        {
+            new WorkingHoursRange((DayOfWeek)day, morningStart, morningEnd),
+            new WorkingHoursRange((DayOfWeek)day, afternoonStart, afternoonEnd),
+        });
 
     private static User AddUser(AppDbContext db, PasswordHasher<User> hasher, Guid companyId, string name, string email, params string[] roles)
     {

@@ -3,6 +3,7 @@ using System.Reflection;
 using FluentValidation;
 using Psycheflow.Api.Features.Auth;
 using Psycheflow.Api.Features.Companies;
+using Psycheflow.Api.Features.Psychologists;
 using Psycheflow.Api.Features.Users;
 
 namespace Psycheflow.Api.Features;
@@ -43,7 +44,8 @@ public static class FeatureSetup
 
         api.MapAuthEndpoints()
             .MapUsersEndpoints()
-            .MapSettingsEndpoints();
+            .MapSettingsEndpoints()
+            .MapPsychologistsEndpoints();
 
         return api;
     }

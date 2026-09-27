@@ -41,6 +41,9 @@ public sealed class Result<T> : Result
         ? _value!
         : throw new InvalidOperationException($"Não é possível ler o valor de um resultado com falha ({Error.Code}).");
 
+    /// <summary>Sucesso explícito — necessário quando <typeparamref name="T"/> é uma interface (sem conversão implícita).</summary>
+    public static Result<T> Success(T value) => new(value);
+
     public static implicit operator Result<T>(T value) => new(value);
 
     public static implicit operator Result<T>(Error error) => new(error);
