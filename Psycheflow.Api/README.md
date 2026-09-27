@@ -5,7 +5,7 @@ API do **Psycheflow**, ERP para clínicas de psicologia e psicólogos autônomos
 - **.NET 10** · ASP.NET Core **Minimal APIs** · **EF Core 10** + **PostgreSQL 17**
 - Arquitetura **Vertical Slice** com núcleo compartilhado (`Common/`) no estilo Clean
 - **TDD**: todo caso de uso tem testes unitários e de integração (Postgres real via Testcontainers)
-- Docker Compose para desenvolvimento · CI no GitHub Actions com cobertura mínima de 80%
+- Docker Compose para desenvolvimento · CI no GitHub Actions (`.github/workflows/api-ci.yml` na raiz do monorepo) com cobertura mínima de 80%
 
 ## Sumário
 

@@ -1,6 +1,6 @@
 # 08 — Plano de reestruturação da API (Clean + Vertical Slice)
 
-> Status: **Fases 0–5 concluídas** em 27/09/2026 na branch `refactor/vertical-slices` do repo `Psycheflow.Api` (commits locais, ainda sem push/PR). Próximas fases no backlog de `07-status-e-backlog.md`.
+> Status: **Fases 0–5 concluídas** em 27/09/2026. O trabalho foi feito na branch `refactor/vertical-slices` do repo `Psycheflow.Api` e depois importado, com histórico, para o monorepo `jhondev123/psycheflow_v2` (pasta `Psycheflow.Api/`). Próximas fases no backlog de `07-status-e-backlog.md`.
 
 ## Progresso
 
@@ -11,7 +11,7 @@
 | 2 — Psicólogos e horários | ✅ Concluída | List/Get/Me/UpdateProfile, Get/Set working hours. Expediente como coleção owned (`psychologist_working_hours`) com regra de sobreposição e `WorksAt` (RN-33) no domínio. |
 | 3 — Pacientes | ✅ Concluída | Create/List/Get/Update. VO `Cpf`, endereço owned (colunas `address_*`), CPF único por empresa (índice filtrado + tratamento de corrida), busca por nome/e-mail (ILIKE) ou CPF completo, filtro por status, paginação. Filtro por última sessão entra na Fase 4. |
 | 4 — Agenda e sessões | ✅ Concluída | Agenda (`GET /agenda`), bloqueios por horário ou dias inteiros (tudo-ou-nada), sessões com ciclo de vida completo (criar, listar, detalhar, editar, confirmar, reagendar, cancelar, concluir, falta, excluir). `TimeSlot` + `ScheduleAvailability` (RN-30/33/34/38/40) com advisory lock do Postgres contra dupla marcação concorrente. Sigilo: anotações/feedback só para o psicólogo da sessão. Filtro de pacientes por última sessão. Cobertura de linhas: 92%. |
-| 5 — Corte (cutover) | ✅ Concluída | Projeto antigo, `.sln`, testes vazios e `env.appsettings.json` removidos (ficam no histórico do git); migration única `InitialCreate`; README do repo da API e arquivo `.http`; docs `01`, `02`, `03`, `04`, `05`, `06`, `07` e `CLAUDE.md` atualizados. Pendentes do dev: push da branch + PR (CI roda no PR) e considerar comprometidos os segredos antigos do histórico. |
+| 5 — Corte (cutover) | ✅ Concluída | Projeto antigo, `.sln`, testes vazios e `env.appsettings.json` removidos (ficam no histórico do git); migration única `InitialCreate`; README do repo da API e arquivo `.http`; docs `01`, `02`, `03`, `04`, `05`, `06`, `07` e `CLAUDE.md` atualizados. Segredos antigos continuam no histórico do git e devem ser considerados comprometidos. |
 
 **Resultado:** 127 testes unitários + 94 de integração verdes · cobertura de linhas 92% · build sem warnings · `docker compose up` sobe banco + API com dados demo.
 

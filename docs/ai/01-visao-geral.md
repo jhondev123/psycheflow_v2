@@ -12,18 +12,19 @@
 ## Estrutura do repositório
 
 ```
-psycheflow/
+psycheflow/                      # monorepo github.com/jhondev123/psycheflow_v2
+├─ README.md                     # contexto do projeto
 ├─ CLAUDE.md                     # ponteiro para esta pasta
+├─ .github/workflows/api-ci.yml  # CI da API
 ├─ docs/
 │  ├─ *.docx, DER_psycheflow.png # documentos originais
 │  └─ ai/                        # esta documentação
-├─ Psycheflow.Api/               # backend (repositório git próprio) — ver README.md dele
+├─ Psycheflow.Api/               # backend — ver README.md dele (histórico importado de jhondev123/Psycheflow.Api)
 │  ├─ Psycheflow.slnx, global.json, Directory.Build.props, Directory.Packages.props, .editorconfig
 │  ├─ docker-compose.yml, Dockerfile, .env.example
-│  ├─ .github/workflows/ci.yml
 │  ├─ src/Psycheflow.Api/        # Common/ + Features/<Módulo>/<CasoDeUso>/
 │  └─ tests/                     # UnitTests + IntegrationTests (Testcontainers)
-└─ Psycheflow.Front/             # frontend React (sem git próprio na pasta)
+└─ Psycheflow.Front/             # frontend React
    └─ src/
       ├─ App.tsx, main.tsx
       ├─ components/ (layout/, ui/, RequireAuth.tsx)
