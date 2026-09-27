@@ -18,6 +18,16 @@ Autores: Jhonattan Curtarelli, Matheus Augusto e Matheus Mantovani.
 > `psycheflow_v2` reúne API, front e documentação num único repositório. O histórico de commits da API foi preservado
 > (vindo de [`jhondev123/Psycheflow.Api`](https://github.com/jhondev123/Psycheflow.Api)).
 
+## Arquitetura da API
+
+Organizada em **fatias verticais** (*Vertical Slice Architecture*): cada caso de uso tem sua própria pasta com request,
+validação, regra e endpoint (`Features/<Módulo>/<CasoDeUso>/`). Dentro de cada fatia, **comandos** (que alteram dados)
+e **consultas** (que só leem) são separados, seguindo o princípio CQS. As regras de negócio ficam em entidades ricas,
+inspiradas na Clean Architecture, e os endpoints usam **Minimal APIs**.
+
+Não é CQRS completo: leitura e escrita usam o mesmo banco e o mesmo modelo, o que basta para o porte do sistema.
+As decisões e seus motivos estão em [`docs/ai/08-plano-reestruturacao.md`](docs/ai/08-plano-reestruturacao.md).
+
 ## Situação atual
 
 - **API:** conta e login (JWT), usuários e perfis, configurações da clínica, psicólogos e expediente, pacientes, agenda,
