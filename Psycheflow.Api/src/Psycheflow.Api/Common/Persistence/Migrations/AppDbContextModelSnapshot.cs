@@ -321,6 +321,76 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                     b.ToTable("patients", (string)null);
                 });
 
+            modelBuilder.Entity("Psycheflow.Api.Features.Payments.Payment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<string>("CancellationReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("cancellation_reason");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("company_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<int?>("Method")
+                        .HasColumnType("integer")
+                        .HasColumnName("method");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("notes");
+
+                    b.Property<DateOnly?>("PaidAt")
+                        .HasColumnType("date")
+                        .HasColumnName("paid_at");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("session_id");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_payments");
+
+                    b.HasIndex("SessionId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_payments_session_id")
+                        .HasFilter("deleted_at IS NULL");
+
+                    b.HasIndex("CompanyId", "Status")
+                        .HasDatabaseName("ix_payments_company_id_status");
+
+                    b.ToTable("payments", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_payments_amount", "amount >= 0");
+                        });
+                });
+
             modelBuilder.Entity("Psycheflow.Api.Features.Psychologists.Psychologist", b =>
                 {
                     b.Property<Guid>("Id")
@@ -374,6 +444,92 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                         .HasFilter("deleted_at IS NULL");
 
                     b.ToTable("psychologists", (string)null);
+                });
+
+            modelBuilder.Entity("Psycheflow.Api.Features.Recurrences.Recurrence", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("company_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<int>("DurationMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("duration_minutes");
+
+                    b.Property<DateOnly?>("EndDate")
+                        .HasColumnType("date")
+                        .HasColumnName("end_date");
+
+                    b.Property<string>("EndReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("end_reason");
+
+                    b.Property<DateOnly>("GeneratedUntil")
+                        .HasColumnType("date")
+                        .HasColumnName("generated_until");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("patient_id");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasColumnName("price");
+
+                    b.Property<Guid>("PsychologistId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("psychologist_id");
+
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("date")
+                        .HasColumnName("start_date");
+
+                    b.Property<TimeOnly>("StartTime")
+                        .HasColumnType("time without time zone")
+                        .HasColumnName("start_time");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer")
+                        .HasColumnName("type");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_recurrences");
+
+                    b.HasIndex("CompanyId")
+                        .HasDatabaseName("ix_recurrences_company_id");
+
+                    b.HasIndex("PatientId")
+                        .HasDatabaseName("ix_recurrences_patient_id");
+
+                    b.HasIndex("PsychologistId")
+                        .HasDatabaseName("ix_recurrences_psychologist_id");
+
+                    b.ToTable("recurrences", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_recurrences_price", "price >= 0");
+                        });
                 });
 
             modelBuilder.Entity("Psycheflow.Api.Features.Scheduling.Schedule", b =>
@@ -487,6 +643,10 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("psychologist_id");
 
+                    b.Property<Guid?>("RecurrenceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("recurrence_id");
+
                     b.Property<string>("RescheduleReason")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)")
@@ -512,6 +672,9 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
 
                     b.HasIndex("PsychologistId")
                         .HasDatabaseName("ix_sessions_psychologist_id");
+
+                    b.HasIndex("RecurrenceId")
+                        .HasDatabaseName("ix_sessions_recurrence_id");
 
                     b.HasIndex("ScheduleId")
                         .IsUnique()
@@ -807,6 +970,25 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                     b.Navigation("Address");
                 });
 
+            modelBuilder.Entity("Psycheflow.Api.Features.Payments.Payment", b =>
+                {
+                    b.HasOne("Psycheflow.Api.Features.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_payments_companies_company_id");
+
+                    b.HasOne("Psycheflow.Api.Features.Sessions.Session", "Session")
+                        .WithOne("Payment")
+                        .HasForeignKey("Psycheflow.Api.Features.Payments.Payment", "SessionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_payments_sessions_session_id");
+
+                    b.Navigation("Session");
+                });
+
             modelBuilder.Entity("Psycheflow.Api.Features.Psychologists.Psychologist", b =>
                 {
                     b.HasOne("Psycheflow.Api.Features.Companies.Company", null)
@@ -866,6 +1048,30 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                     b.Navigation("WorkingHours");
                 });
 
+            modelBuilder.Entity("Psycheflow.Api.Features.Recurrences.Recurrence", b =>
+                {
+                    b.HasOne("Psycheflow.Api.Features.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_recurrences_companies_company_id");
+
+                    b.HasOne("Psycheflow.Api.Features.Patients.Patient", null)
+                        .WithMany()
+                        .HasForeignKey("PatientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_recurrences_patients_patient_id");
+
+                    b.HasOne("Psycheflow.Api.Features.Psychologists.Psychologist", null)
+                        .WithMany()
+                        .HasForeignKey("PsychologistId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_recurrences_psychologists_psychologist_id");
+                });
+
             modelBuilder.Entity("Psycheflow.Api.Features.Scheduling.Schedule", b =>
                 {
                     b.HasOne("Psycheflow.Api.Features.Companies.Company", null)
@@ -906,6 +1112,12 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_sessions_psychologists_psychologist_id");
 
+                    b.HasOne("Psycheflow.Api.Features.Recurrences.Recurrence", null)
+                        .WithMany()
+                        .HasForeignKey("RecurrenceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_sessions_recurrences_recurrence_id");
+
                     b.HasOne("Psycheflow.Api.Features.Scheduling.Schedule", "Schedule")
                         .WithOne()
                         .HasForeignKey("Psycheflow.Api.Features.Sessions.Session", "ScheduleId")
@@ -930,6 +1142,11 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                         .HasConstraintName("fk_users_companies_company_id");
 
                     b.Navigation("Company");
+                });
+
+            modelBuilder.Entity("Psycheflow.Api.Features.Sessions.Session", b =>
+                {
+                    b.Navigation("Payment");
                 });
 #pragma warning restore 612, 618
         }

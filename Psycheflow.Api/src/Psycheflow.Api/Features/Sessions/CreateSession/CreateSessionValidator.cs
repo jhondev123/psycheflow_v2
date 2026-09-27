@@ -12,5 +12,6 @@ public sealed class CreateSessionValidator : AbstractValidator<CreateSessionRequ
         RuleFor(x => x.StartTime).NotNull().WithMessage("Informe o horário.");
         RuleFor(x => x.DurationMinutes).ValidDuration();
         RuleFor(x => x.Notes).OptionalText(Session.NotesMaxLength);
+        RuleFor(x => x.Price).GreaterThanOrEqualTo(0).WithMessage("O valor não pode ser negativo.");
     }
 }

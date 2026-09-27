@@ -1,5 +1,6 @@
 using Psycheflow.Api.Common.Domain;
 using Psycheflow.Api.Common.Persistence;
+using Psycheflow.Api.Features.Payments;
 
 namespace Psycheflow.Api.Features.Sessions.DeleteSession;
 
@@ -20,6 +21,17 @@ public sealed class DeleteSessionHandler(AppDbContext db, SessionAccess access)
         if (session.Value.Status == SessionStatus.Completed)
         {
             return SessionErrors.CompletedCannotBeDeleted;
+        }
+
+        if (session.Value.Payment is { Status: PaymentStatus.Paid })
+        {
+            return PaymentErrors.PaidBlocksSessionChange;
+        }
+
+        // Dependentes primeiro (pagamento → sessão → agenda): as relações são Restrict.
+        if (session.Value.Payment is not null)
+        {
+            db.Payments.Remove(session.Value.Payment);
         }
 
         db.Sessions.Remove(session.Value);

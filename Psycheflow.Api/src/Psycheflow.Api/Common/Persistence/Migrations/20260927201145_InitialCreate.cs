@@ -301,6 +301,51 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "recurrences",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    company_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    psychologist_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    patient_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    type = table.Column<int>(type: "integer", nullable: false),
+                    start_date = table.Column<DateOnly>(type: "date", nullable: false),
+                    end_date = table.Column<DateOnly>(type: "date", nullable: true),
+                    start_time = table.Column<TimeOnly>(type: "time without time zone", nullable: false),
+                    duration_minutes = table.Column<int>(type: "integer", nullable: false),
+                    price = table.Column<decimal>(type: "numeric(12,2)", precision: 12, scale: 2, nullable: false),
+                    generated_until = table.Column<DateOnly>(type: "date", nullable: false),
+                    is_active = table.Column<bool>(type: "boolean", nullable: false),
+                    end_reason = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    deleted_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    updated_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_recurrences", x => x.id);
+                    table.CheckConstraint("ck_recurrences_price", "price >= 0");
+                    table.ForeignKey(
+                        name: "fk_recurrences_companies_company_id",
+                        column: x => x.company_id,
+                        principalTable: "companies",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "fk_recurrences_patients_patient_id",
+                        column: x => x.patient_id,
+                        principalTable: "patients",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "fk_recurrences_psychologists_psychologist_id",
+                        column: x => x.psychologist_id,
+                        principalTable: "psychologists",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "schedules",
                 columns: table => new
                 {
@@ -344,6 +389,7 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                     schedule_id = table.Column<Guid>(type: "uuid", nullable: false),
                     psychologist_id = table.Column<Guid>(type: "uuid", nullable: false),
                     patient_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    recurrence_id = table.Column<Guid>(type: "uuid", nullable: true),
                     status = table.Column<int>(type: "integer", nullable: false),
                     notes = table.Column<string>(type: "character varying(20000)", maxLength: 20000, nullable: true),
                     feedback_score = table.Column<int>(type: "integer", nullable: true),
@@ -377,9 +423,50 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                         principalColumn: "id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
+                        name: "fk_sessions_recurrences_recurrence_id",
+                        column: x => x.recurrence_id,
+                        principalTable: "recurrences",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
                         name: "fk_sessions_schedules_schedule_id",
                         column: x => x.schedule_id,
                         principalTable: "schedules",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "payments",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    company_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    session_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    amount = table.Column<decimal>(type: "numeric(12,2)", precision: 12, scale: 2, nullable: false),
+                    status = table.Column<int>(type: "integer", nullable: false),
+                    method = table.Column<int>(type: "integer", nullable: true),
+                    paid_at = table.Column<DateOnly>(type: "date", nullable: true),
+                    notes = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    cancellation_reason = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    deleted_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    updated_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_payments", x => x.id);
+                    table.CheckConstraint("ck_payments_amount", "amount >= 0");
+                    table.ForeignKey(
+                        name: "fk_payments_companies_company_id",
+                        column: x => x.company_id,
+                        principalTable: "companies",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "fk_payments_sessions_session_id",
+                        column: x => x.session_id,
+                        principalTable: "sessions",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Restrict);
                 });
@@ -413,6 +500,18 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                 column: "user_id");
 
             migrationBuilder.CreateIndex(
+                name: "ix_payments_company_id_status",
+                table: "payments",
+                columns: new[] { "company_id", "status" });
+
+            migrationBuilder.CreateIndex(
+                name: "ix_payments_session_id",
+                table: "payments",
+                column: "session_id",
+                unique: true,
+                filter: "deleted_at IS NULL");
+
+            migrationBuilder.CreateIndex(
                 name: "ix_psychologist_working_hours_psychologist_id",
                 table: "psychologist_working_hours",
                 column: "psychologist_id");
@@ -428,6 +527,21 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                 column: "user_id",
                 unique: true,
                 filter: "deleted_at IS NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_recurrences_company_id",
+                table: "recurrences",
+                column: "company_id");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_recurrences_patient_id",
+                table: "recurrences",
+                column: "patient_id");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_recurrences_psychologist_id",
+                table: "recurrences",
+                column: "psychologist_id");
 
             migrationBuilder.CreateIndex(
                 name: "ix_role_claims_role_id",
@@ -464,6 +578,11 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                 name: "ix_sessions_psychologist_id",
                 table: "sessions",
                 column: "psychologist_id");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_sessions_recurrence_id",
+                table: "sessions",
+                column: "recurrence_id");
 
             migrationBuilder.CreateIndex(
                 name: "ix_sessions_schedule_id",
@@ -510,13 +629,13 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                 name: "company_settings");
 
             migrationBuilder.DropTable(
+                name: "payments");
+
+            migrationBuilder.DropTable(
                 name: "psychologist_working_hours");
 
             migrationBuilder.DropTable(
                 name: "role_claims");
-
-            migrationBuilder.DropTable(
-                name: "sessions");
 
             migrationBuilder.DropTable(
                 name: "user_claims");
@@ -531,13 +650,19 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                 name: "user_tokens");
 
             migrationBuilder.DropTable(
-                name: "patients");
+                name: "sessions");
+
+            migrationBuilder.DropTable(
+                name: "roles");
+
+            migrationBuilder.DropTable(
+                name: "recurrences");
 
             migrationBuilder.DropTable(
                 name: "schedules");
 
             migrationBuilder.DropTable(
-                name: "roles");
+                name: "patients");
 
             migrationBuilder.DropTable(
                 name: "psychologists");

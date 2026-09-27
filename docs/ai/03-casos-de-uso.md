@@ -24,10 +24,10 @@ Ator principal em todos: **Psicólogo** (logado), exceto quando indicado.
 | UC07 | Cancelar sessão | RF007 | ✅ | 🧪🟡 |
 | UC08 | Concluir sessão | RF009 | ✅ | 🧪🟡 |
 | UC09 | Editar sessão | RF008 | ✅ | 🧪🟡 |
-| UC10 | Criar recorrência de sessões | RF010 | ❌ | ❌ |
-| UC11 | Lançar pagamento | RF011 | ❌ | ❌ |
-| UC12 | Visualizar pagamentos | RF012 | ❌ | ❌ |
-| UC13 | Editar pagamento | RF013 | ❌ | ❌ |
+| UC10 | Criar recorrência de sessões | RF010 | ✅ | ❌ |
+| UC11 | Lançar pagamento | RF011 | ✅ | ❌ |
+| UC12 | Visualizar pagamentos | RF012 | ✅ | ❌ |
+| UC13 | Editar pagamento | RF013 | ✅ | ❌ |
 | UC14 | Gerar recibo de sessão | RF014 | ❌ | ❌ |
 | UC15 | Gerar relatório de sessões | RF015 | ❌ | ❌ |
 | UC16 | Gerar relatório de feedback | RF015-B | ❌ | ❌ |

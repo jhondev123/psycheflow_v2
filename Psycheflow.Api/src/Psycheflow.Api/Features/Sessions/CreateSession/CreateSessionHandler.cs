@@ -10,7 +10,8 @@ namespace Psycheflow.Api.Features.Sessions.CreateSession;
 
 /// <summary>
 /// UC04 / RF004: agenda uma sessão (Schedule + Session numa transação) respeitando RN-30 a RN-35.
-/// A duração vem da configuração da empresa quando não informada (RN-32).
+/// A duração e o valor vêm da configuração da empresa quando não informados (RN-32, RN-51) e a sessão
+/// nasce com pagamento pendente (RN-50).
 /// </summary>
 public sealed class CreateSessionHandler(AppDbContext db, ScheduleAvailability availability, SessionAccess access)
 {
@@ -46,7 +47,7 @@ public sealed class CreateSessionHandler(AppDbContext db, ScheduleAvailability a
         }
 
         var session = Session.Book(psychologist.Value.Id, patient.Value.Id, slot.Value, request.Notes);
-        db.Sessions.Add(session);
+        access.AddWithPayment(session, SessionAccess.ResolvePrice(request.Price, settings));
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 

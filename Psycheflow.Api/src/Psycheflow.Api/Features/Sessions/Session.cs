@@ -1,5 +1,6 @@
 using Psycheflow.Api.Common.Domain;
 using Psycheflow.Api.Features.Patients;
+using Psycheflow.Api.Features.Payments;
 using Psycheflow.Api.Features.Psychologists;
 using Psycheflow.Api.Features.Scheduling;
 
@@ -35,6 +36,12 @@ public sealed class Session : Entity, ITenantEntity, ISoftDeletable
 
     public Patient? Patient { get; private set; }
 
+    /// <summary>Recorrência que gerou a sessão (RF010), se houver.</summary>
+    public Guid? RecurrenceId { get; private set; }
+
+    /// <summary>Cobrança da sessão (nasce pendente, RN-50).</summary>
+    public Payment? Payment { get; private set; }
+
     public SessionStatus Status { get; private set; }
 
     /// <summary>Anotações em Markdown (RN-46). Sigilosas: só o psicólogo da sessão vê.</summary>
@@ -54,7 +61,7 @@ public sealed class Session : Entity, ITenantEntity, ISoftDeletable
 
     public bool IsOpen => Status == SessionStatus.Scheduled;
 
-    public static Session Book(Guid psychologistId, Guid patientId, TimeSlot slot, string? notes)
+    public static Session Book(Guid psychologistId, Guid patientId, TimeSlot slot, string? notes, Guid? recurrenceId = null)
     {
         var schedule = Schedule.ForSession(psychologistId, slot);
         return new Session
@@ -63,6 +70,7 @@ public sealed class Session : Entity, ITenantEntity, ISoftDeletable
             ScheduleId = schedule.Id,
             PsychologistId = psychologistId,
             PatientId = patientId,
+            RecurrenceId = recurrenceId,
             Status = SessionStatus.Scheduled,
             Notes = Normalize(notes),
         };

@@ -53,24 +53,24 @@ Status por camada (coluna API atualizada em 27/09/2026, após a reestruturação
 | RN-40 | Bloqueio pode ficar fora do expediente? | divergência | ✅ | ✅ | Decidido: bloqueio ignora o expediente. |
 | RN-41 | Reagendar, cancelar, editar e concluir só se a sessão **não** estiver concluída nem cancelada | UC6–UC9 | ✅ | 🟡 | `Session.IsOpen`: só sessões agendadas aceitam alterações (409). |
 | RN-42 | Reagendamento exige nova data, horário e **motivo**; reaplica RN-30/33/34 | RF006 | ✅ | 🟡 | `POST /sessions/{id}/reschedule` com motivo; reaplica RN-30/33/34 ignorando o próprio horário. |
-| RN-43 | Cancelamento exige **motivo**; cancela também o pagamento da sessão | RF007/UC7 | 🟡 | 🟡 | Motivo obrigatório ✅; cancelar o pagamento entra na fase Financeiro. |
-| RN-44 | Se o pagamento já estiver **Pago**, é preciso cancelar o pagamento antes de cancelar a sessão | UC7 | ❌ | ❌ | |
+| RN-43 | Cancelamento exige **motivo**; cancela também o pagamento da sessão | RF007/UC7 | ✅ | 🟡 | Motivo obrigatório; o pagamento pendente da sessão é cancelado junto. |
+| RN-44 | Se o pagamento já estiver **Pago**, é preciso cancelar o pagamento antes de cancelar a sessão | UC7 | ✅ | ❌ | Garantida: só sessões concluídas são pagas (RN-55) e concluídas não são canceladas (RN-41); o handler também bloqueia. |
 | RN-45 | Concluir exige **anotações** e **feedback nota 0–10** | RF009 | ✅ | 🟡 | Anotações obrigatórias + `feedback_score` 0–10 (CHECK no banco). |
 | RN-46 | Anotações da sessão em **Markdown** | RF004 | ✅ | ❌ | `sessions.notes` guarda Markdown; o front renderiza. |
 | RN-47 | Paciente pode ser marcado como **falta** (NoShow) | Front RF24 | ✅ | 🧪 | `POST /sessions/{id}/no-show`, só após o início. |
-| RN-48 | Recorrência: tipo **semanal** ou **mensal** + valor da sessão; gera as sessões futuras respeitando RN-33/34 | RF010 | ❌ | ❌ | Definir horizonte de geração (D-05). |
+| RN-48 | Recorrência: tipo **semanal** ou **mensal** + valor da sessão; gera as sessões futuras respeitando RN-33/34 | RF010 | ✅ | ❌ | `RecurrencePattern` (semanal/mensal, último dia do mês quando necessário) + `RecurrenceGenerator` aplicando RN-30/33/34. |
 
 ## Financeiro
 
 | ID | Regra | Origem | API | Front | Observação |
 |----|-------|--------|-----|-------|------------|
-| RN-50 | Ao criar uma sessão, cria-se um pagamento **Pendente** | UC4 | ❌ | ❌ | `Payment` existe no banco, nada o cria. |
-| RN-51 | Valor da sessão vem da recorrência ou de configuração | RF011 | ❌ | ❌ | |
-| RN-52 | Métodos: Cartão de crédito, Débito, Pix | RF011 | ❌ | ❌ | `Payment` não tem campo método. |
-| RN-53 | Data do pagamento não pode ser menor que hoje | RF011 | ❌ | ❌ | |
-| RN-54 | Status do pagamento: Pendente, Pago, Cancelado | RF012 | ❌ | ❌ | Hoje só `bool Paid`. |
-| RN-55 | Lançar pagamento exige sessão **concluída** | UC11 | ❌ | ❌ | Conflita com RN-50 (pagamento já nasce pendente). Interpretação: "lançar" = marcar como Pago. |
-| RN-56 | Pagamento com status Pago não pode ser editado (editáveis: valor e status) | RF013 | ❌ | ❌ | |
+| RN-50 | Ao criar uma sessão, cria-se um pagamento **Pendente** | UC4 | ✅ | ❌ | `SessionAccess.AddWithPayment`: toda sessão (avulsa ou de recorrência) nasce com pagamento Pendente. |
+| RN-51 | Valor da sessão vem da recorrência ou de configuração | RF011 | ✅ | ❌ | Valor informado → valor da recorrência → `company_settings.session_default_price` → 0. |
+| RN-52 | Métodos: Cartão de crédito, Débito, Pix | RF011 | ✅ | ❌ | `PaymentMethod`: CreditCard, DebitCard, Pix. |
+| RN-53 | Data do pagamento não pode ser menor que hoje | RF011 | ✅ | ❌ | `Payment.Pay` compara com a data de hoje no fuso da clínica. |
+| RN-54 | Status do pagamento: Pendente, Pago, Cancelado | RF012 | ✅ | ❌ | `PaymentStatus`: Pending, Paid, Cancelled. |
+| RN-55 | Lançar pagamento exige sessão **concluída** | UC11 | ✅ | ❌ | "Lançar" = `POST /payments/{id}/pay`, exige sessão Completed (409). |
+| RN-56 | Pagamento com status Pago não pode ser editado (editáveis: valor e status) | RF013 | ✅ | ❌ | `PUT /payments/{id}` só altera valor de pendente (409 se pago). |
 | RN-57 | Recibo só pode ser gerado se o pagamento estiver Pago | RF014 | ❌ | ❌ | |
 
 ## Documentos, prontuários e IA

@@ -2,9 +2,8 @@ using System.Net;
 using System.Net.Http.Json;
 using Psycheflow.Api.Features.Patients;
 using Psycheflow.Api.Features.Sessions;
-using Psycheflow.Api.IntegrationTests.Infrastructure;
 
-namespace Psycheflow.Api.IntegrationTests.Features.Sessions;
+namespace Psycheflow.Api.IntegrationTests.Infrastructure;
 
 /// <summary>
 /// Base dos testes de agenda. "Agora" é segunda-feira 05/10/2026 09:00 (São Paulo) e os psicólogos atendem
@@ -49,7 +48,13 @@ public abstract class SchedulingTest(ApiFactory factory) : IntegrationTest(facto
     }
 
     protected Task<HttpResponseMessage> PostSessionAsync(
-        TestAccount account, Guid patientId, string date, string startTime, int? durationMinutes = null, Guid? psychologistId = null) =>
+        TestAccount account,
+        Guid patientId,
+        string date,
+        string startTime,
+        int? durationMinutes = null,
+        Guid? psychologistId = null,
+        decimal? price = null) =>
         CreateClient(account).PostAsJsonAsync("/api/v1/sessions", new
         {
             patientId,
@@ -57,14 +62,43 @@ public abstract class SchedulingTest(ApiFactory factory) : IntegrationTest(facto
             date,
             startTime,
             durationMinutes,
+            price,
         }, Ct);
 
     protected async Task<SessionResponse> CreateSessionAsync(
-        TestAccount account, Guid patientId, string date, string startTime, int? durationMinutes = null, Guid? psychologistId = null)
+        TestAccount account,
+        Guid patientId,
+        string date,
+        string startTime,
+        int? durationMinutes = null,
+        Guid? psychologistId = null,
+        decimal? price = null)
     {
-        HttpResponseMessage response = await PostSessionAsync(account, patientId, date, startTime, durationMinutes, psychologistId);
+        HttpResponseMessage response = await PostSessionAsync(account, patientId, date, startTime, durationMinutes, psychologistId, price);
         response.StatusCode.ShouldBe(HttpStatusCode.Created, await response.Content.ReadAsStringAsync(Ct));
         return await ReadAsync<SessionResponse>(response);
+    }
+
+    /// <summary>Define o valor padrão da sessão da empresa (RN-51).</summary>
+    protected async Task SetDefaultPriceAsync(TestAccount admin, decimal price)
+    {
+        HttpResponseMessage response = await CreateClient(admin).PutAsJsonAsync("/api/v1/settings", new
+        {
+            sessionDurationMinutes = 50,
+            sessionDefaultPrice = price,
+            timeZone = "America/Sao_Paulo",
+        }, Ct);
+        response.EnsureSuccessStatusCode();
+    }
+
+    /// <summary>Avança o relógio até depois do início da sessão, renova o token e conclui a sessão.</summary>
+    protected async Task<TestAccount> CompleteSessionAsync(TestAccount psychologist, SessionResponse session)
+    {
+        TravelTo(session.Date, session.EndTime);
+        TestAccount refreshed = await RefreshAsync(psychologist);
+        HttpResponseMessage response = await PostActionAsync(refreshed, session.Id, "complete", new { notes = "Evolução registrada.", feedbackScore = 8 });
+        response.StatusCode.ShouldBe(HttpStatusCode.OK, await response.Content.ReadAsStringAsync(Ct));
+        return refreshed;
     }
 
     protected Task<HttpResponseMessage> PostActionAsync(TestAccount account, Guid sessionId, string action, object? body = null) =>

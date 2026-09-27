@@ -2,8 +2,10 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Psycheflow.Api.Common.Auth;
 using Psycheflow.Api.Common.Domain;
+using Psycheflow.Api.Common.Time;
 using Psycheflow.Api.Features.Companies;
 using Psycheflow.Api.Features.Patients;
+using Psycheflow.Api.Features.Payments;
 using Psycheflow.Api.Features.Psychologists;
 using Psycheflow.Api.Features.Scheduling;
 using Psycheflow.Api.Features.Sessions;
@@ -24,6 +26,8 @@ internal static class DevData
 {
     public const string DemoPassword = "Psycheflow@123";
 
+    private const decimal DemoSessionPrice = 150m;
+
     public static async Task SeedAsync(DbContext context, bool storeManagementPerformed, CancellationToken cancellationToken)
     {
         var db = (AppDbContext)context;
@@ -34,6 +38,7 @@ internal static class DevData
         }
 
         Company company = Company.Create("Clínica Psycheflow (demo)").Value;
+        company.Settings.Update(CompanySettings.DefaultSessionDurationMinutes, DemoSessionPrice, ClinicClock.DefaultTimeZone);
         db.Companies.Add(company);
 
         var hasher = new PasswordHasher<User>();
@@ -111,9 +116,16 @@ internal static class DevData
                 TimeSlot slot = TimeSlot.FromDuration(day, new TimeOnly(hour, 0), CompanySettings.DefaultSessionDurationMinutes).Value;
 
                 var session = Session.Book(psychologistId, patient.Id, slot, notes: null);
+                var payment = Payment.ForSession(session.Id, DemoSessionPrice);
                 if (offset < 0)
                 {
                     session.Complete("Paciente relatou evolução nos objetivos combinados.", 6 + (Math.Abs(offset) % 5), null, DateTime.MaxValue);
+
+                    // Parte das sessões passadas já foi paga; o resto fica pendente para o financeiro.
+                    if (offset % 3 != 0)
+                    {
+                        payment.Pay(true, i == 0 ? PaymentMethod.Pix : PaymentMethod.CreditCard, today, null, null, today);
+                    }
                 }
                 else
                 {
@@ -122,6 +134,7 @@ internal static class DevData
 
                 AddTenant(db, session, companyId);
                 AddTenant(db, session.Schedule, companyId);
+                AddTenant(db, payment, companyId);
             }
         }
 

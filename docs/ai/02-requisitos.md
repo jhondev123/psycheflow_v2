@@ -21,10 +21,10 @@ Status por camada — legenda em `README.md`. Regras detalhadas: `04-regras-de-n
 | RF007 | Cancelamento de sessões | Prioritário | ✅ | 🧪🟡 | UC07 |
 | RF008 | Edição de sessões | Prioritário | ✅ | 🧪🟡 | UC09 |
 | RF009 | Conclusão da sessão | Prioritário | ✅ | 🧪🟡 | UC08 |
-| RF010 | Recorrência de sessão | Prioritário | ❌ | ❌ | UC10 |
-| RF011 | Lançamento de pagamento | Prioritário | ❌ | ❌ | UC11 |
-| RF012 | Visualização de pagamentos | Prioritário | ❌ | ❌ | UC12 |
-| RF013 | Edição de pagamentos | Prioritário | ❌ | ❌ | UC13 |
+| RF010 | Recorrência de sessão | Prioritário | ✅ | ❌ | UC10 |
+| RF011 | Lançamento de pagamento | Prioritário | ✅ | ❌ | UC11 |
+| RF012 | Visualização de pagamentos | Prioritário | ✅ | ❌ | UC12 |
+| RF013 | Edição de pagamentos | Prioritário | ✅ | ❌ | UC13 |
 | RF014 | Recibos de sessões | Prioritário | ❌ (QuestPDF) | ❌ | UC14 |
 | RF015 | Relatório de sessões | Prioritário | ❌ (QuestPDF) | ❌ | UC15 |
 | RF015-B | Relatório de feedback de pacientes | Prioritário | ❌ (QuestPDF) | ❌ | UC16 |
@@ -103,17 +103,17 @@ Status por camada — legenda em `README.md`. Regras detalhadas: `04-regras-de-n
 
 ### RF010 — Recorrência de sessão
 - **Campos:** Tipo (Semanal, Mensal)\*, valor das sessões. Acionada a partir do paciente. Regras: RN-48, RN-51.
-- **API ❌** · **Front ❌** — nenhuma entidade de recorrência. Falta definir dia/horário base e até quando gerar (D-05).
+- **API ✅** — `POST /api/v1/recurrences` (semanal/mensal, valor, data final opcional): gera 3 meses de sessões pulando datas indisponíveis e informando o motivo; `/extend` gera mais 3 meses; `/end` encerra e cancela as futuras. **Front ❌.**
 
 ### RF011 — Lançamento do pagamento
 - **Campos:** Valor\* (de configuração/recorrência), Método\* (Crédito, Débito, Pix), Data (≥ hoje), Informações extras. Regras: RN-50 a RN-55.
-- **API ❌** — entidade `Payment` existe (`Value`, `AmountPaid`, `Paid`, `Date`, `Description`, `SessionId`), sem método nem status enum, sem endpoint. **Front ❌.**
+- **API ✅** — pagamento nasce pendente com a sessão (valor da sessão/recorrência/empresa); `POST /api/v1/payments/{id}/pay` registra método (crédito, débito, Pix), data (≥ hoje) e valor, só após a sessão concluída. **Front ❌.**
 
 ### RF012 — Visualização de pagamentos
-- **Filtros:** Paciente, período (fim opcional), status. **API ❌ · Front ❌** (não há tela "Pagamentos").
+- **Filtros:** Paciente, período (fim opcional), status. **API ✅** (`GET /api/v1/payments`) · **Front ❌**.
 
 ### RF013 — Edição de pagamentos
-- **Editáveis:** Valor, Status. Regra RN-56. **API ❌ · Front ❌.**
+- **Editáveis:** Valor, Status. Regra RN-56. **API ✅** (`PUT /payments/{id}` valor; status por `/pay` e `/cancel`; pago não edita) · **Front ❌.**
 
 ### RF014 — Recibos de sessões
 - **Entrada:** Sessão. Regra RN-57. Saída: recibo para download/impressão.

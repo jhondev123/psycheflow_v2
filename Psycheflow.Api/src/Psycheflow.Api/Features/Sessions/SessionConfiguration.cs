@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Psycheflow.Api.Features.Companies;
+using Psycheflow.Api.Features.Recurrences;
 
 namespace Psycheflow.Api.Features.Sessions;
 
@@ -25,6 +26,7 @@ internal sealed class SessionConfiguration : IEntityTypeConfiguration<Session>
         builder.HasOne(s => s.Psychologist).WithMany().HasForeignKey(s => s.PsychologistId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(s => s.Patient).WithMany().HasForeignKey(s => s.PatientId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Company>().WithMany().HasForeignKey(s => s.CompanyId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<Recurrence>().WithMany().HasForeignKey(s => s.RecurrenceId).OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(s => new { s.PatientId, s.Status });
         builder.HasIndex(s => s.PsychologistId);

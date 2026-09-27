@@ -5,24 +5,26 @@ using Psycheflow.Api.Common.Persistence;
 using Psycheflow.Api.Common.Time;
 using Psycheflow.Api.Features.Companies;
 using Psycheflow.Api.Features.Patients;
+using Psycheflow.Api.Features.Payments;
 using Psycheflow.Api.Features.Scheduling;
 
 namespace Psycheflow.Api.Features.Sessions;
 
 /// <summary>
-/// Carregamento e regras de acesso das sessões (D-02): Admin/Manager e o psicólogo da sessão acessam a agenda;
-/// anotações e feedback são exclusivos do psicólogo da sessão.
+/// Carregamento, regras de acesso e operações compartilhadas das sessões (D-02): Admin/Manager e o psicólogo da sessão
+/// acessam a agenda; anotações e feedback são exclusivos do psicólogo da sessão.
 /// </summary>
 public sealed class SessionAccess(AppDbContext db, ICurrentUser currentUser, ClinicClock clock)
 {
     public bool CanSeeClinicalData(Session session) => currentUser.PsychologistId == session.PsychologistId;
 
-    /// <summary>Sessão (com agenda, paciente e psicólogo) que o usuário pode gerenciar.</summary>
+    /// <summary>Sessão (com agenda, paciente, pagamento e psicólogo) que o usuário pode gerenciar.</summary>
     public async Task<Result<Session>> FindManageableAsync(Guid id, CancellationToken cancellationToken)
     {
         Session? session = await db.Sessions
             .Include(s => s.Schedule)
             .Include(s => s.Patient)
+            .Include(s => s.Payment)
             .Include(s => s.Psychologist!).ThenInclude(p => p.User)
             .SingleOrDefaultAsync(s => s.Id == id, cancellationToken);
 
@@ -52,7 +54,43 @@ public sealed class SessionAccess(AppDbContext db, ICurrentUser currentUser, Cli
         return (settings, clock.LocalNow(settings.TimeZone));
     }
 
+    /// <summary>Registra a sessão já com o pagamento pendente (RN-50).</summary>
+    public void AddWithPayment(Session session, decimal price)
+    {
+        db.Sessions.Add(session);
+        db.Payments.Add(Payment.ForSession(session.Id, price));
+    }
+
+    /// <summary>
+    /// Cancela a sessão (RN-43) e o pagamento dela. Um pagamento já recebido bloqueia o cancelamento (RN-44):
+    /// na prática não acontece, porque só sessões concluídas são pagas (RN-55) e concluídas não são canceladas (RN-41).
+    /// </summary>
+    public static Result Cancel(Session session, string reason)
+    {
+        if (session.Payment is { Status: PaymentStatus.Paid })
+        {
+            return PaymentErrors.PaidBlocksSessionChange;
+        }
+
+        Result cancelled = session.Cancel(reason);
+        if (cancelled.IsFailure)
+        {
+            return cancelled;
+        }
+
+        if (session.Payment is { Status: PaymentStatus.Pending } payment)
+        {
+            payment.Cancel($"Sessão cancelada: {reason.Trim()}");
+        }
+
+        return Result.Success();
+    }
+
     public SessionResponse ToResponse(Session session) => SessionResponse.From(session, CanSeeClinicalData(session));
+
+    /// <summary>Preço da sessão (RN-51): o informado, senão o padrão da empresa, senão zero (ajustável depois).</summary>
+    public static decimal ResolvePrice(decimal? requested, CompanySettings settings) =>
+        requested ?? settings.SessionDefaultPrice ?? 0m;
 
     public static Result<TimeSlot> BuildSlot(DateOnly date, TimeOnly start, int? durationMinutes, int defaultDuration) =>
         TimeSlot.FromDuration(date, start, durationMinutes ?? defaultDuration);

@@ -1,3 +1,4 @@
+using Psycheflow.Api.Features.Payments;
 using Psycheflow.Api.Features.Scheduling;
 
 namespace Psycheflow.Api.Features.Sessions;
@@ -24,10 +25,12 @@ public sealed record SessionResponse(
     string? CancellationReason,
     string? RescheduleReason,
     bool ClinicalNotesVisible,
+    Guid? RecurrenceId,
+    SessionPaymentSummary? Payment,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt)
 {
-    /// <summary>Requer <c>Schedule</c>, <c>Patient</c> e <c>Psychologist.User</c> carregados.</summary>
+    /// <summary>Requer <c>Schedule</c>, <c>Patient</c>, <c>Payment</c> e <c>Psychologist.User</c> carregados.</summary>
     public static SessionResponse From(Session session, bool clinicalNotesVisible) => new(
         session.Id,
         session.ScheduleId,
@@ -47,6 +50,8 @@ public sealed record SessionResponse(
         session.CancellationReason,
         session.RescheduleReason,
         clinicalNotesVisible,
+        session.RecurrenceId,
+        SessionPaymentSummary.From(session.Payment),
         session.CreatedAt,
         session.UpdatedAt);
 }

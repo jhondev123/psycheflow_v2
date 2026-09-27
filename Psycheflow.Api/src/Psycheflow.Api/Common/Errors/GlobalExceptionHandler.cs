@@ -4,13 +4,17 @@ using Microsoft.AspNetCore.Mvc;
 namespace Psycheflow.Api.Common.Errors;
 
 /// <summary>
-/// Último recurso para exceções não tratadas: registra o erro e devolve ProblemDetails sem vazar detalhes internos.
+/// Último recurso para exceções não tratadas: registra o erro e devolve ProblemDetails.
+/// Detalhes da exceção só aparecem em Development/Testing (nunca em produção).
 /// Erros de leitura do request (JSON malformado, parâmetro inválido) viram 400.
 /// </summary>
 public sealed class GlobalExceptionHandler(
     IProblemDetailsService problemDetailsService,
+    IHostEnvironment environment,
     ILogger<GlobalExceptionHandler> logger) : IExceptionHandler
 {
+    public const string TestingEnvironment = "Testing";
+
     public async ValueTask<bool> TryHandleAsync(
         HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
     {
@@ -34,6 +38,11 @@ public sealed class GlobalExceptionHandler(
                 Title = "Erro interno.",
                 Detail = "Ocorreu um erro inesperado. Tente novamente mais tarde.",
             };
+        }
+
+        if (environment.IsDevelopment() || environment.IsEnvironment(TestingEnvironment))
+        {
+            problem.Extensions["exception"] = exception.ToString();
         }
 
         httpContext.Response.StatusCode = problem.Status.Value;
