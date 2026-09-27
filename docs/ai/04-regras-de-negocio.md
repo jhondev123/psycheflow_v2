@@ -82,7 +82,7 @@ Status por camada (coluna API atualizada em 27/09/2026, após a reestruturação
 | RN-62 | Laudo exige paciente, motivo e modelo; pode incluir dados de sessões e anotações | RF016 | ✅ | ❌ | Paciente, modelo e finalidade obrigatórios; `includeSessionSummary` resume as sessões concluídas no procedimento. |
 | RN-63 | Relatório de sessões: filtros período, status da sessão, status do pagamento | RF015 | ✅ | ❌ | `GET /documents/sessions-report` com período (início obrigatório), status da sessão e do pagamento. |
 | RN-64 | Relatório de feedback: paciente obrigatório + período (fim opcional) | RF015(b) | ✅ | ❌ | `GET /documents/feedback-report`: paciente e início obrigatórios; fim opcional. |
-| RN-65 | Prontuário exige paciente; aceita texto e anexos (PDF/imagem) | RF019 | ❌ | ❌ | |
-| RN-66 | Prontuários: busca por paciente, data de criação e palavra-chave; acesso só a profissionais autorizados | RF020, RD002 | ❌ | ❌ | |
+| RN-65 | Prontuário exige paciente; aceita texto e anexos (PDF/imagem) | RF019 | ✅ | ❌ | Paciente, título e conteúdo obrigatórios; anexos PDF/JPG/PNG ≤ 10 MB validados por assinatura (magic bytes). |
+| RN-66 | Prontuários: busca por paciente, data de criação e palavra-chave; acesso só a profissionais autorizados | RF020, RD002 | ✅ | ❌ | `GET /medical-records?patientId&from&to&search`; acesso exclusivo do psicólogo autor; exclusão lógica preserva a guarda. |
 | RN-67 | IA só funciona com consentimento explícito do psicólogo e sobre os tipos de dado que ele liberar (feedbacks, sessões, prontuários, laudos); revogar desativa | RF021 | ❌ | ❌ | Tabelas `Config`/`ConfigAi` já existem (`ConfigKey.EnableAI`). |
 | RN-68 | Horários de trabalho: início < fim; salvar substitui todas as faixas do psicólogo | Código (RF017) | ✅ | 🧪 | `PsychologistController.StoreWorkingHours`. |

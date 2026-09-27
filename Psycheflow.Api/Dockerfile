@@ -25,6 +25,9 @@ ENV ASPNETCORE_HTTP_PORTS=8080
 EXPOSE 8080
 
 COPY --from=build /app/publish .
+
+# Anexos de prontuário (montado como volume no compose)
+RUN mkdir -p /app/storage && chown -R $APP_UID /app/storage
 USER $APP_UID
 
 HEALTHCHECK --interval=15s --timeout=3s --retries=5 CMD curl -fsS http://localhost:8080/health || exit 1

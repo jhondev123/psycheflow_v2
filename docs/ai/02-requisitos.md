@@ -31,8 +31,8 @@ Status por camada — legenda em `README.md`. Regras detalhadas: `04-regras-de-n
 | RF016 | Geração de laudos | Prioritário | ✅ | ❌ | UC17 |
 | RF017 | Gerenciamento da agenda | Prioritário | ✅ | 🧪✅ | UC18 |
 | RF018 | Bloqueio de agenda | Prioritário | ✅ | 🧪🟡 | UC19 |
-| RF019 | Criação de prontuários | Prioritário | ❌ | ❌ | UC20 |
-| RF020 | Gerenciamento de prontuários | Prioritário | ❌ | ❌ | UC21 |
+| RF019 | Criação de prontuários | Prioritário | ✅ | ❌ | UC20 |
+| RF020 | Gerenciamento de prontuários | Prioritário | ✅ | ❌ | UC21 |
 | RF021 | Sugestões com IA | Prioritário* | ❌ | ❌ | UC22 |
 | RF022 | Login do psicólogo | Prioritário | ✅ | 🧪 | UC23 |
 | RF023 | Logout | Prioritário | ✅ | 🧪 | UC24 |
@@ -142,10 +142,10 @@ Status por camada — legenda em `README.md`. Regras detalhadas: `04-regras-de-n
 - **Front 🧪🟡** — bloqueio por horário com título/motivo. Falta bloqueio de dias inteiros/intervalo de datas.
 
 ### RF019 — Criação de prontuários
-- **Campos:** Paciente\*, informações (texto + anexos PDF/imagem). Regra RN-65. **API ❌ · Front ❌.** Exige armazenamento de arquivos (D-06).
+- **Campos:** Paciente\*, informações (texto + anexos PDF/imagem). Regra RN-65. **API ✅** (`POST /api/v1/medical-records` + `POST /medical-records/{id}/attachments` — PDF/JPG/PNG até 10 MB validados pela assinatura do arquivo, gravados via `IFileStorage` em volume, D-06) · **Front ❌.**
 
 ### RF020 — Gerenciamento de prontuários
-- Armazenamento seguro, anexos, anotações, busca por paciente/data/palavra-chave; visualizar, editar, excluir. Regra RN-66. **API ❌ · Front ❌.**
+- Armazenamento seguro, anexos, anotações, busca por paciente/data/palavra-chave; visualizar, editar, excluir. Regra RN-66. **API ✅** (busca, detalhe, edição, exclusão lógica, download/remoção de anexos; só o psicólogo autor acessa) · **Front ❌.**
 
 ### RF021 — Sugestões com IA
 - Opt-in do psicólogo + escolha dos dados permitidos (feedbacks, sessões, prontuários, laudos). Sugestões em: registro de sessões, laudos, relatórios, padrões de comportamento. Regra RN-67.
@@ -193,5 +193,5 @@ Status por camada — legenda em `README.md`. Regras detalhadas: `04-regras-de-n
 
 | ID | Requisito | Status | Observação |
 |----|-----------|--------|------------|
-| RD001 | Seguir a Resolução CFP nº 013/2015 (atuação do psicólogo e prontuários eletrônicos) | ❌ | Recomenda-se o dev conferir o texto da resolução citada e das normas do CFP sobre registro documental/prontuário antes de implementar RF019/RF020 (guarda mínima, sigilo, acesso). |
+| RD001 | Seguir a Resolução CFP nº 013/2015 (atuação do psicólogo e prontuários eletrônicos) | 🟡 | Recomenda-se o dev conferir o texto da resolução citada e das normas do CFP sobre registro documental/prontuário antes de implementar RF019/RF020 (guarda mínima, sigilo, acesso). |
 | RD002 | Confidencialidade: só profissionais autorizados acessam dados do paciente | ✅ (API) | Isolamento por empresa em todas as consultas; psicólogo só acessa a própria agenda; anotações e feedback só para o psicólogo da sessão (D-02). |

@@ -34,8 +34,12 @@ services:
       Jwt__Key: ${JWT_KEY:?Defina JWT_KEY no .env}
       Database__MigrateOnStartup: "true"
       Cors__AllowedOrigins__0: ${FRONT_URL:-http://localhost:5173}
+      Storage__Path: /app/storage
     ports:
       - "${API_PORT:-8080}:8080"
+    volumes:
+      - api-storage:/app/storage
 
 volumes:
   postgres-data:
+  api-storage:

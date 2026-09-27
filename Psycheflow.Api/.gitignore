@@ -98,3 +98,6 @@ lcov.info
 
 ## Cobertura de testes
 coverage/
+
+## Anexos gravados localmente em desenvolvimento
+src/Psycheflow.Api/storage/

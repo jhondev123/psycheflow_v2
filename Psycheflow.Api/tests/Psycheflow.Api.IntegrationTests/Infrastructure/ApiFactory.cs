@@ -31,6 +31,8 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         .WithPassword("psycheflow")
         .Build();
 
+    private readonly string _storagePath = Path.Combine(Path.GetTempPath(), $"psycheflow-it-storage-{Guid.NewGuid():N}");
+
     private Respawner? _respawner;
 
     public TestClock Clock { get; } = new(DefaultNow);
@@ -65,6 +67,10 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
     {
         await base.DisposeAsync();
         await _postgres.DisposeAsync();
+        if (Directory.Exists(_storagePath))
+        {
+            Directory.Delete(_storagePath, recursive: true);
+        }
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -73,6 +79,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("ConnectionStrings:Postgres", _postgres.GetConnectionString());
         builder.UseSetting("Jwt:Key", "integration-tests-signing-key-0123456789abcdef");
         builder.UseSetting(PersistenceSetup.MigrateOnStartupKey, "true");
+        builder.UseSetting("Storage:Path", _storagePath);
         builder.ConfigureTestServices(services => services.AddSingleton<TimeProvider>(Clock));
     }
 }

@@ -5,6 +5,7 @@ using Psycheflow.Api.Features.Auth;
 using Psycheflow.Api.Features.Companies;
 using Psycheflow.Api.Features.Documents;
 using Psycheflow.Api.Features.Documents.Pdf;
+using Psycheflow.Api.Features.MedicalRecords;
 using Psycheflow.Api.Features.Patients;
 using Psycheflow.Api.Features.Payments;
 using Psycheflow.Api.Features.PsychologicalReports;
@@ -45,6 +46,7 @@ public static class FeatureSetup
         services.AddScoped<RecurrenceGenerator>();
         services.AddScoped<DocumentHeaderFactory>();
         services.AddScoped<PsychologicalReportAccess>();
+        services.AddScoped<MedicalRecordAccess>();
 
         PdfSetup.Configure();
 
@@ -69,7 +71,8 @@ public static class FeatureSetup
             .MapPaymentsEndpoints()
             .MapRecurrencesEndpoints()
             .MapDocumentsEndpoints()
-            .MapPsychologicalReportsEndpoints();
+            .MapPsychologicalReportsEndpoints()
+            .MapMedicalRecordsEndpoints();
 
         return api;
     }

@@ -279,6 +279,43 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "medical_records",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    company_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    patient_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    psychologist_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    title = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    content = table.Column<string>(type: "character varying(50000)", maxLength: 50000, nullable: false),
+                    deleted_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    updated_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_medical_records", x => x.id);
+                    table.ForeignKey(
+                        name: "fk_medical_records_companies_company_id",
+                        column: x => x.company_id,
+                        principalTable: "companies",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "fk_medical_records_patients_patient_id",
+                        column: x => x.patient_id,
+                        principalTable: "patients",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "fk_medical_records_psychologists_psychologist_id",
+                        column: x => x.psychologist_id,
+                        principalTable: "psychologists",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "psychological_reports",
                 columns: table => new
                 {
@@ -425,6 +462,30 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "medical_record_attachments",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    medical_record_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    file_name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    content_type = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    size_bytes = table.Column<long>(type: "bigint", nullable: false),
+                    deleted_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    updated_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_medical_record_attachments", x => x.id);
+                    table.ForeignKey(
+                        name: "fk_medical_record_attachments_medical_records_medical_record_id",
+                        column: x => x.medical_record_id,
+                        principalTable: "medical_records",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "sessions",
                 columns: table => new
                 {
@@ -525,6 +586,26 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                     { new Guid("0199a1b0-0000-7000-8000-000000000003"), "0199a1b0-0000-7000-8000-000000000003", "Psychologist", "PSYCHOLOGIST" },
                     { new Guid("0199a1b0-0000-7000-8000-000000000004"), "0199a1b0-0000-7000-8000-000000000004", "Patient", "PATIENT" }
                 });
+
+            migrationBuilder.CreateIndex(
+                name: "ix_medical_record_attachments_medical_record_id",
+                table: "medical_record_attachments",
+                column: "medical_record_id");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_medical_records_company_id",
+                table: "medical_records",
+                column: "company_id");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_medical_records_patient_id",
+                table: "medical_records",
+                column: "patient_id");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_medical_records_psychologist_id_patient_id",
+                table: "medical_records",
+                columns: new[] { "psychologist_id", "patient_id" });
 
             migrationBuilder.CreateIndex(
                 name: "ix_patients_company_id_cpf",
@@ -688,6 +769,9 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                 name: "company_settings");
 
             migrationBuilder.DropTable(
+                name: "medical_record_attachments");
+
+            migrationBuilder.DropTable(
                 name: "payments");
 
             migrationBuilder.DropTable(
@@ -710,6 +794,9 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
 
             migrationBuilder.DropTable(
                 name: "user_tokens");
+
+            migrationBuilder.DropTable(
+                name: "medical_records");
 
             migrationBuilder.DropTable(
                 name: "sessions");

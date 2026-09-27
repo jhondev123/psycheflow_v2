@@ -34,8 +34,8 @@ Ator principal em todos: **Psicólogo** (logado), exceto quando indicado.
 | UC17 | Gerar laudo | RF016 | ✅ | ❌ |
 | UC18 | Gerenciar agenda | RF017 | ✅ | 🧪✅ |
 | UC19 | Lançar bloqueio de agenda | RF018 | ✅ | 🧪🟡 |
-| UC20 | Criar prontuário | RF019 | ❌ | ❌ |
-| UC21 | Gerenciar prontuários | RF020 | ❌ | ❌ |
+| UC20 | Criar prontuário | RF019 | ✅ | ❌ |
+| UC21 | Gerenciar prontuários | RF020 | ✅ | ❌ |
 | UC22 | Usar sugestões de IA | RF021 | ❌ | ❌ |
 | UC23 | Login | RF022 | ✅ | 🧪 |
 | UC24 | Logout | RF023 | ✅ | 🧪 |

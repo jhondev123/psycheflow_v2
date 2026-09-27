@@ -240,6 +240,110 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                     b.ToTable("companies", (string)null);
                 });
 
+            modelBuilder.Entity("Psycheflow.Api.Features.MedicalRecords.MedicalRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("company_id");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(50000)
+                        .HasColumnType("character varying(50000)")
+                        .HasColumnName("content");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("patient_id");
+
+                    b.Property<Guid>("PsychologistId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("psychologist_id");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("title");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_medical_records");
+
+                    b.HasIndex("CompanyId")
+                        .HasDatabaseName("ix_medical_records_company_id");
+
+                    b.HasIndex("PatientId")
+                        .HasDatabaseName("ix_medical_records_patient_id");
+
+                    b.HasIndex("PsychologistId", "PatientId")
+                        .HasDatabaseName("ix_medical_records_psychologist_id_patient_id");
+
+                    b.ToTable("medical_records", (string)null);
+                });
+
+            modelBuilder.Entity("Psycheflow.Api.Features.MedicalRecords.MedicalRecordAttachment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("content_type");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("file_name");
+
+                    b.Property<Guid>("MedicalRecordId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("medical_record_id");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint")
+                        .HasColumnName("size_bytes");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_medical_record_attachments");
+
+                    b.HasIndex("MedicalRecordId")
+                        .HasDatabaseName("ix_medical_record_attachments_medical_record_id");
+
+                    b.ToTable("medical_record_attachments", (string)null);
+                });
+
             modelBuilder.Entity("Psycheflow.Api.Features.Patients.Patient", b =>
                 {
                     b.Property<Guid>("Id")
@@ -980,6 +1084,40 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Psycheflow.Api.Features.MedicalRecords.MedicalRecord", b =>
+                {
+                    b.HasOne("Psycheflow.Api.Features.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_medical_records_companies_company_id");
+
+                    b.HasOne("Psycheflow.Api.Features.Patients.Patient", null)
+                        .WithMany()
+                        .HasForeignKey("PatientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_medical_records_patients_patient_id");
+
+                    b.HasOne("Psycheflow.Api.Features.Psychologists.Psychologist", null)
+                        .WithMany()
+                        .HasForeignKey("PsychologistId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_medical_records_psychologists_psychologist_id");
+                });
+
+            modelBuilder.Entity("Psycheflow.Api.Features.MedicalRecords.MedicalRecordAttachment", b =>
+                {
+                    b.HasOne("Psycheflow.Api.Features.MedicalRecords.MedicalRecord", null)
+                        .WithMany("Attachments")
+                        .HasForeignKey("MedicalRecordId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_medical_record_attachments_medical_records_medical_record_id");
+                });
+
             modelBuilder.Entity("Psycheflow.Api.Features.Patients.Patient", b =>
                 {
                     b.HasOne("Psycheflow.Api.Features.Companies.Company", null)
@@ -1252,6 +1390,11 @@ namespace Psycheflow.Api.Common.Persistence.Migrations
                         .HasConstraintName("fk_users_companies_company_id");
 
                     b.Navigation("Company");
+                });
+
+            modelBuilder.Entity("Psycheflow.Api.Features.MedicalRecords.MedicalRecord", b =>
+                {
+                    b.Navigation("Attachments");
                 });
 
             modelBuilder.Entity("Psycheflow.Api.Features.Sessions.Session", b =>

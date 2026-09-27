@@ -8,6 +8,7 @@ using Psycheflow.Api.Common.Auth;
 using Psycheflow.Api.Common.Errors;
 using Psycheflow.Api.Common.OpenApi;
 using Psycheflow.Api.Common.Persistence;
+using Psycheflow.Api.Common.Storage;
 using Psycheflow.Api.Common.Time;
 using Psycheflow.Api.Features.Users;
 
@@ -23,6 +24,7 @@ public static class CommonServices
         services.AddSingleton<ClinicClock>();
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUser, HttpCurrentUser>();
+        services.AddFileStorage();
 
         services.AddProblemDetails(options => options.CustomizeProblemDetails = context =>
         {
