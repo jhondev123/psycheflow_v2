@@ -26,7 +26,7 @@ TCC (FAG – Cascavel/PR) de um "ERP" para clínicas de psicologia e psicólogos
 |---------|-------------|
 | ✅ | Implementado e funcional para o escopo do requisito |
 | 🟡 | Parcial — existe algo, mas falta parte do requisito ou tem bug |
-| 🧪 | Só no front como **mock** (localStorage), sem API |
+| 🧪 | Só no front como **mock** (localStorage), sem API — não usado desde a integração do front (28/09/2026) |
 | ❌ | Não iniciado |
 
 Status é sempre dado **por camada**: `API` (Psycheflow.Api) e `Front` (Psycheflow.Front).

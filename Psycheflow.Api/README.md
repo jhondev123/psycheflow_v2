@@ -23,13 +23,14 @@ API do **Psycheflow**, ERP para clínicas de psicologia e psicólogos autônomos
 
 Pré-requisitos: [.NET 10 SDK](https://dotnet.microsoft.com/download) e [Docker Desktop](https://www.docker.com/products/docker-desktop/).
 
-### Tudo em containers (banco + API)
+### Tudo em containers (banco + API + front)
 
 ```bash
 cp .env.example .env
 docker compose up -d --build
 ```
 
+- Front: http://localhost:5173 (build de produção servido pelo Nginx; login demo `ana@psycheflow.dev` / `Psycheflow@123`)
 - API: http://localhost:8080 · documentação interativa (Scalar): http://localhost:8080/scalar
 - As migrations são aplicadas na subida e, em `Development`, os **dados de demonstração** são carregados.
 
@@ -41,6 +42,7 @@ dotnet run --project src/Psycheflow.Api
 ```
 
 - API: http://localhost:5240 · Scalar: http://localhost:5240/scalar
+- Para o front em modo dev apontar para ela: `VITE_API_URL=http://localhost:5240` em `Psycheflow.Front/.env.local`.
 - `appsettings.Development.json` já aponta para o banco do compose (credenciais **somente de desenvolvimento**).
 - `src/Psycheflow.Api/Psycheflow.Api.http` tem requisições de exemplo prontas.
 

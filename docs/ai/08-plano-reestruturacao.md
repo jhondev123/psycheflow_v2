@@ -17,7 +17,9 @@
 | 8 — Prontuários | ✅ Concluída | Registros por paciente acessíveis só ao autor, busca por período/palavra-chave, anexos PDF/JPG/PNG ≤ 10 MB validados por assinatura e gravados via `IFileStorage` (volume, D-06). |
 | 9 — IA | ✅ Concluída | Porta `IAiTextGenerator` com Claude (Anthropic, `claude-opus-5` com fallback no servidor), OpenAI e Gemini via SDKs oficiais; `ai_settings` por clínica com aceite; contexto só com dados liberados e do psicólogo logado; `Pseudonymizer`; prompt padrão pt-BR; auditoria `ai_usage_logs`; testes com provedor falso (integração) e HTTP simulado (SDKs). |
 
-**Resultado:** 203 testes unitários + 153 de integração verdes · cobertura de linhas 93,7% · build sem warnings · `docker compose up` sobe banco + API com dados demo.
+| 10 — Painel, endurecimento e front | ✅ Concluída | `GET /dashboard`, limite de requisições, trilha de acesso aos prontuários, mascaramento de terceiros na IA; front integrado à API (mock removido) com todas as telas do escopo e serviço `web` no compose. |
+
+**Resultado:** 209 testes unitários + 161 de integração verdes · cobertura de linhas 94% · build sem warnings · `docker compose up` sobe banco, API (com dados demo) e front.
 
 > Decisões tomadas em sessão de perguntas com o dev (grill-me). Durante a execução, decisões de arquitetura adicionais ficaram a cargo da IA (autorizado pelo dev) e estão registradas em A-29 em diante.
 
@@ -60,6 +62,7 @@
 | A-33 | Arquivos | `IFileStorage` em `Common/Storage` com implementação local (`Storage:Path`, proteção contra path traversal); volume `api-storage` no compose. |
 | A-34 | IA | Porta `IAiTextGenerator` (Ports & Adapters) com um adaptador por SDK oficial; provedor disponível = chave configurada no servidor; `AiAssistant` concentra autorização, pseudonimização, timeout, recusa/falha (`ErrorType.Unavailable` → 503) e auditoria; SDKs recebem `HttpClient` do `IHttpClientFactory` (testáveis com handler simulado). |
 | A-35 | Endurecimento | Limite de requisições com o middleware nativo (`AddRateLimiter`, janela fixa configurável, 429 em ProblemDetails); trilha de acesso aos prontuários gravada pelo `MedicalRecordAccess` (leitura, download e negação); painel calculado no banco com consultas agregadas (sem cache). |
+| A-36 | Front | Cliente HTTP único (`lib/api.ts`) sem biblioteca extra: `fetch` + JWT no `localStorage`, ProblemDetails → `ApiError` com erros por campo; carregamento com um hook simples (`useAsync`) em vez de React Query/Redux (KISS); regras só na API, front valida formato; componentes compartilhados para os fluxos que aparecem em várias telas (modal de sessão, formulário de paciente, pagamento, sugestão de IA). Front também no compose (build Node → Nginx). |
 
 Decisões D-05 a D-09 confirmadas com o dev em 27/09/2026 (ver `07`). Notificações ficaram para depois (D-11).
 

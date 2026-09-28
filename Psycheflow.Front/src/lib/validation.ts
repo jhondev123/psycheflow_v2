@@ -1,10 +1,10 @@
-/** Form validation + Brazilian masks (CPF / phone). */
+/** Validações de formulário e máscaras brasileiras (espelham as regras da API). */
 
 export function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
 
-/** Validates a Brazilian CPF including its two check digits. */
+/** CPF com os dois dígitos verificadores. */
 export function isValidCPF(value: string): boolean {
   const cpf = value.replace(/\D/g, "");
   if (cpf.length !== 11) return false;
@@ -24,8 +24,19 @@ export function isValidCPF(value: string): boolean {
   return digits[10] === check;
 }
 
+/** Telefone com DDD: 10 ou 11 dígitos. */
 export function isValidPhone(value: string): boolean {
-  return /^\(?\d{2}\)?\s?\d{4,5}-?\d{4}$/.test(value.trim());
+  const d = value.replace(/\D/g, "");
+  return (d.length === 10 || d.length === 11) && d[0] !== "0";
+}
+
+/** CRP no formato "06/12345" (região / número). */
+export function isValidLicense(value: string): boolean {
+  return /^\d{2}\/\d{4,6}$/.test(value.trim());
+}
+
+export function isValidZipCode(value: string): boolean {
+  return value.replace(/\D/g, "").length === 8;
 }
 
 export function maskCPF(value: string): string {
@@ -44,7 +55,16 @@ export function maskPhone(value: string): string {
   return d.replace(/(\d{2})(\d)/, "($1) $2").replace(/(\d{5})(\d)/, "$1-$2");
 }
 
-/** Password rule matching the API Identity defaults (min 6, upper, lower, digit, symbol). */
+export function maskZipCode(value: string): string {
+  return value.replace(/\D/g, "").slice(0, 8).replace(/(\d{5})(\d)/, "$1-$2");
+}
+
+export function maskLicense(value: string): string {
+  const d = value.replace(/\D/g, "").slice(0, 8);
+  return d.length > 2 ? `${d.slice(0, 2)}/${d.slice(2)}` : d;
+}
+
+/** Mesmas regras de senha do ASP.NET Identity configurado na API. */
 export function passwordIssues(pw: string): string[] {
   const issues: string[] = [];
   if (pw.length < 6) issues.push("ao menos 6 caracteres");
@@ -54,3 +74,11 @@ export function passwordIssues(pw: string): string[] {
   if (!/[^A-Za-z0-9]/.test(pw)) issues.push("um símbolo");
   return issues;
 }
+
+export const PASSWORD_RULES: Array<{ key: string; label: string }> = [
+  { key: "ao menos 6 caracteres", label: "6+ caracteres" },
+  { key: "uma letra maiúscula", label: "Maiúscula" },
+  { key: "uma letra minúscula", label: "Minúscula" },
+  { key: "um número", label: "Número" },
+  { key: "um símbolo", label: "Símbolo" },
+];

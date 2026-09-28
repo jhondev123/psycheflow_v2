@@ -34,22 +34,24 @@ As decisões e seus motivos estão em [`docs/ai/08-plano-reestruturacao.md`](doc
   bloqueios e ciclo de vida das sessões, pagamentos e recorrência, documentos em PDF (QuestPDF), laudos, prontuários com
   anexos e assistente de IA (Claude, OpenAI ou Gemini, com dados pseudonimizados) — com isolamento por empresa e sigilo
   das anotações clínicas.
-- **Front:** telas de agenda, pacientes, sessões, horários, perfil e painel (mock).
-- **Próximos passos:** painel e rate limiting na API → integrar o front com a API (removendo o mock) → notificações.
+- **Front:** integrado à API — painel, agenda, pacientes (com ficha), sessões, financeiro, prontuários, documentos,
+  configurações (perfil, horários, clínica, usuários) e assistente de IA.
+- **Próximos passos:** notificações (adiadas) e deploy.
   Veja o backlog em [`docs/ai/07-status-e-backlog.md`](docs/ai/07-status-e-backlog.md).
 
 ## Como rodar
 
 ```bash
-# API + banco (Docker)
+# Tudo em containers: banco + API + front
 cd Psycheflow.Api
 cp .env.example .env
-docker compose up -d --build        # http://localhost:8080/scalar
+docker compose up -d --build        # front: http://localhost:5173 · API: http://localhost:8080/scalar
 
-# Front
+# Front em modo desenvolvimento (opcional, com a API acima no ar)
 cd Psycheflow.Front
 npm install
-npm run dev                          # http://localhost:5173
+npm run dev                          # http://localhost:5173 (VITE_API_URL em .env.local)
 ```
 
-Pré-requisitos: .NET 10 SDK, Docker e Node.js. Logins de demonstração e demais detalhes no [README da API](Psycheflow.Api/README.md).
+Login de demonstração: `ana@psycheflow.dev` / `Psycheflow@123`. Pré-requisitos: Docker (e .NET 10 SDK / Node.js para
+desenvolver sem containers). Logins de demonstração e demais detalhes no [README da API](Psycheflow.Api/README.md).

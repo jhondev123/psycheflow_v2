@@ -1,4 +1,5 @@
 using System.Net;
+using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Psycheflow.Api.Common.Auth;
 using Psycheflow.Api.IntegrationTests.Infrastructure;
@@ -31,5 +32,20 @@ public sealed class InfrastructureTests(ApiFactory factory) : IntegrationTest(fa
 
         response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
         response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+    }
+
+    [Fact]
+    public async Task Cors_AllowedOrigin_CanReadTheDownloadFileName()
+    {
+        const string front = "http://localhost:5173";
+        await using WebApplicationFactory<Program> app = Factory.WithWebHostBuilder(builder => builder.UseSetting("Cors:AllowedOrigins:0", front));
+        using HttpClient client = app.CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/health");
+        request.Headers.Add("Origin", front);
+
+        HttpResponseMessage response = await client.SendAsync(request, Ct);
+
+        response.Headers.GetValues("Access-Control-Allow-Origin").ShouldBe([front]);
+        response.Headers.GetValues("Access-Control-Expose-Headers").ShouldContain(value => value.Contains("Content-Disposition"));
     }
 }

@@ -24,16 +24,20 @@ psycheflow/                      # monorepo github.com/jhondev123/psycheflow_v2
 │  ├─ docker-compose.yml, Dockerfile, .env.example
 │  ├─ src/Psycheflow.Api/        # Common/ + Features/<Módulo>/<CasoDeUso>/
 │  └─ tests/                     # UnitTests + IntegrationTests (Testcontainers)
-└─ Psycheflow.Front/             # frontend React
+└─ Psycheflow.Front/             # frontend React (Dockerfile + nginx.conf para o compose)
    └─ src/
-      ├─ App.tsx, main.tsx
-      ├─ components/ (layout/, ui/, RequireAuth.tsx)
-      ├─ data/seed.ts                   # base de demonstração
-      ├─ lib/                           # calendar, domain, format, scheduling, time, validation
-      ├─ pages/                         # Login, Register, Dashboard, Agenda, Patients, Sessions, Documents, WorkingHours, Profile
-      ├─ store/AppStore.tsx             # "banco" em memória + localStorage
+      ├─ App.tsx, main.tsx              # rotas (RequireAuth / RequireRole)
+      ├─ components/                    # layout/, ui/ (Modal, Feedback, Markdown, ReasonDialog…),
+      │                                 # SessionModal, PatientForm, PatientSelect, PayDialog, AiSuggestionModal
+      ├─ lib/api.ts                     # cliente HTTP: token Bearer, ProblemDetails → ApiError, download/upload
+      ├─ lib/useAsync.ts                # carregamento com loading/erro/reload
+      ├─ lib/                           # calendar, domain (rótulos/badges), format, time, validation
+      ├─ pages/                         # Login, Register, ChangePassword, Dashboard, Agenda, Patients, PatientDetail,
+      │                                 # Sessions, Payments, MedicalRecords, Documents, WorkingHours, Profile,
+      │                                 # ClinicSettings, Users, AiSettings
+      ├─ store/AppStore.tsx             # sessão (usuário, perfil, configurações), tema e avisos
       ├─ styles/                        # CSS próprio
-      └─ types/index.ts                 # tipos (ainda no contrato da API antiga — ver DT-01)
+      └─ types/index.ts                 # tipos do contrato da API
 ```
 
 ## Stack
@@ -61,12 +65,12 @@ psycheflow/                      # monorepo github.com/jhondev123/psycheflow_v2
 | Datas | date-fns 4 (locale pt-BR) |
 | Ícones | lucide-react |
 | UI | CSS próprio, sem framework; tema claro/escuro |
-| Dados | **Mock**: `AppStore` guarda tudo no `localStorage` (`psycheflow.db.v1`). **Não chama a API.** |
+| Dados | API REST via `lib/api.ts` (`VITE_API_URL`, padrão `http://localhost:8080`); só o token e o tema ficam no `localStorage` |
 
 ## Arquitetura
 
 ```
-[React SPA] --(ainda mock, DT-01)--> [Minimal APIs /api/v1] → Handler → AppDbContext (EF Core) → [PostgreSQL]
+[React SPA] --(fetch + JWT)--> [Minimal APIs /api/v1] → Handler → AppDbContext (EF Core) → [PostgreSQL]
 ```
 
 ### API: Vertical Slice + núcleo compartilhado
@@ -89,8 +93,13 @@ psycheflow/                      # monorepo github.com/jhondev123/psycheflow_v2
 - **Autorização segura por padrão:** a política de fallback exige usuário interno; rotas públicas usam `AllowAnonymous()`.
 
 ### Front
-- Um único contexto React (`AppStore`) expõe o "banco" e as ações (`addPatient`, `createSchedule`, …).
-- **Integração com a API: inexistente** (DT-01). A API nova mudou contratos (camelCase, enums como texto, rotas `/api/v1`).
+- Toda chamada passa por `lib/api.ts`: token Bearer, erros ProblemDetails viram `ApiError` (mensagem pt-BR, `code`, erros por campo),
+  401 faz logout e downloads (PDF/anexos) respeitam o nome enviado pela API.
+- Páginas carregam dados com `useAsync` (loading, erro com "tentar de novo", `reload`); regras de negócio ficam na API — o front
+  só valida formato (CPF, telefone, CRP, senha) para dar retorno imediato.
+- `AppStore` guarda só a sessão (usuário, perfil de psicólogo, configurações), tema e avisos. Rotas por perfil com `RequireRole`;
+  senha temporária força `/trocar-senha`.
+- Tipos em `types/index.ts` espelham o contrato (camelCase, enums como texto); horas chegam como `HH:mm:ss` e são exibidas com `hm()`.
 
 ## Como rodar (dev)
 
@@ -103,7 +112,8 @@ dotnet test                          # precisa do Docker rodando
 # Logins demo (Development): ana@psycheflow.dev / Psycheflow@123 (ver DevData.cs)
 
 # Front
-cd Psycheflow.Front && npm install && npm run dev  # http://localhost:5173
+cd Psycheflow.Front && npm install && npm run dev  # http://localhost:5173 (VITE_API_URL em .env.local)
+# ou tudo em containers: o compose da API também sobe o front (serviço web) em http://localhost:5173
 ```
 
 ## Convenções

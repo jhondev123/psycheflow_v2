@@ -3,6 +3,8 @@ import {
   addDays,
   addMonths,
   addWeeks,
+  endOfMonth,
+  endOfWeek,
   format,
   isSameMonth,
   isToday,
@@ -10,21 +12,11 @@ import {
   startOfWeek,
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import {
-  CalendarPlus,
-  ChevronLeft,
-  ChevronRight,
-  Clock,
-  Trash2,
-  User,
-} from "lucide-react";
+import { CalendarPlus, ChevronLeft, ChevronRight, Clock, Trash2, User } from "lucide-react";
 import { useStore } from "@/store/AppStore";
-import {
-  type Schedule,
-  type WorkingHour,
-  ScheduleStatus,
-  ScheduleType,
-} from "@/types";
+import { api, errorMessage } from "@/lib/api";
+import { useAsync } from "@/lib/useAsync";
+import type { Agenda as AgendaData, AgendaItem, Psychologist, RecurrenceGeneration, RecurrenceType, WorkingHour } from "@/types";
 import {
   type CalEvent,
   DAY_END_HOUR,
@@ -37,18 +29,19 @@ import {
   yForMinutes,
   yForTime,
 } from "@/lib/calendar";
-import { scheduleStatusMeta, scheduleTypeLabel } from "@/lib/domain";
-import { durationLabel, timeOptions } from "@/lib/time";
-import { capitalize, fmtDateLong } from "@/lib/format";
+import { dayIndex, recurrenceTypeLabel } from "@/lib/domain";
+import { durationLabel } from "@/lib/time";
+import { capitalize, fmtDateLong, fmtDateShort, hm, isoDate, parseMoney } from "@/lib/format";
 import { Modal } from "@/components/ui/Modal";
+import { ErrorState } from "@/components/ui/Feedback";
+import { PatientSelect } from "@/components/PatientSelect";
+import { SessionModal } from "@/components/SessionModal";
 import "@/styles/calendar.css";
 
 type View = "month" | "week" | "day";
 
-const iso = (d: Date) => format(d, "yyyy-MM-dd");
 const HOURS = Array.from({ length: DAY_END_HOUR - DAY_START_HOUR + 1 }, (_, i) => DAY_START_HOUR + i);
 
-/** Ticking "now" updated every minute (for the time indicator). */
 function useNow() {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -58,67 +51,86 @@ function useNow() {
   return now;
 }
 
+function range(view: View, cursor: Date): { from: Date; to: Date } {
+  if (view === "day") return { from: cursor, to: cursor };
+  if (view === "week") return { from: startOfWeek(cursor, { weekStartsOn: 0 }), to: endOfWeek(cursor, { weekStartsOn: 0 }) };
+  return {
+    from: startOfWeek(startOfMonth(cursor), { weekStartsOn: 0 }),
+    to: endOfWeek(endOfMonth(cursor), { weekStartsOn: 0 }),
+  };
+}
+
 interface CreateCtx {
   date: string;
   start?: string;
 }
 
 export function Agenda() {
-  const { db, activePsychologist } = useStore();
+  const { me, isManagement } = useStore();
   const [view, setView] = useState<View>("week");
   const [cursor, setCursor] = useState(() => new Date());
   const [createCtx, setCreateCtx] = useState<CreateCtx | null>(null);
-  const [selected, setSelected] = useState<Schedule | null>(null);
+  const [selected, setSelected] = useState<AgendaItem | null>(null);
 
-  const psyId = activePsychologist?.id ?? "";
+  const psychologists = useAsync(() => api.get<Psychologist[]>("/psychologists"), []);
+  const [psychologistId, setPsychologistId] = useState(me?.psychologistId ?? "");
+  useEffect(() => {
+    if (!psychologistId && psychologists.data?.length) setPsychologistId(psychologists.data[0].id);
+  }, [psychologistId, psychologists.data]);
+
+  const { from, to } = range(view, cursor);
+  const agenda = useAsync(
+    () => api.get<AgendaData>("/agenda", { from: isoDate(from), to: isoDate(to), psychologistId }),
+    [isoDate(from), isoDate(to), psychologistId],
+    !!psychologistId,
+  );
+
+  const items = agenda.data?.items ?? [];
+  const workingHours = agenda.data?.workingHours.find((w) => w.psychologistId === psychologistId)?.hours ?? [];
+  const psychologistName = psychologists.data?.find((p) => p.id === psychologistId)?.fullName;
 
   const title = useMemo(() => {
     if (view === "month") return capitalize(format(cursor, "MMMM 'de' yyyy", { locale: ptBR }));
     if (view === "day") return capitalize(format(cursor, "EEEE, d 'de' MMM", { locale: ptBR }));
     const ws = startOfWeek(cursor, { weekStartsOn: 0 });
     const we = addDays(ws, 6);
-    const sameMonth = isSameMonth(ws, we);
-    return sameMonth
-      ? capitalize(format(ws, "d", { locale: ptBR })) +
-          "–" +
-          format(we, "d 'de' MMM", { locale: ptBR })
+    return isSameMonth(ws, we)
+      ? `${format(ws, "d")}–${format(we, "d 'de' MMM", { locale: ptBR })}`
       : `${format(ws, "d MMM", { locale: ptBR })} – ${format(we, "d MMM", { locale: ptBR })}`;
   }, [view, cursor]);
 
   function shift(dir: 1 | -1) {
-    setCursor((c) =>
-      view === "month" ? addMonths(c, dir) : view === "week" ? addWeeks(c, dir) : addDays(c, dir),
-    );
+    setCursor((c) => (view === "month" ? addMonths(c, dir) : view === "week" ? addWeeks(c, dir) : addDays(c, dir)));
   }
 
-  const selectedEvent = selected ? toEvent(db, selected) : null;
+  if (!me?.psychologistId && !isManagement) return null;
 
   return (
     <>
       <div className="page-head">
         <div>
           <h1>Agenda</h1>
-          <div className="sub">
-            {activePsychologist
-              ? `Atendimentos de ${activePsychologist.name}`
-              : "Sua agenda de atendimentos"}
-          </div>
+          <div className="sub">{psychologistName ? `Atendimentos de ${psychologistName}` : "Agenda de atendimentos"}</div>
         </div>
-        <button
-          className="btn btn-primary"
-          onClick={() => setCreateCtx({ date: iso(view === "month" ? new Date() : cursor) })}
-        >
-          <CalendarPlus /> Novo agendamento
-        </button>
+        <div className="row gap-2 wrap">
+          {isManagement && (psychologists.data?.length ?? 0) > 1 && (
+            <select className="select" aria-label="Psicólogo" value={psychologistId} onChange={(e) => setPsychologistId(e.target.value)}>
+              {psychologists.data!.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.fullName}
+                </option>
+              ))}
+            </select>
+          )}
+          <button className="btn btn-primary" disabled={!psychologistId} onClick={() => setCreateCtx({ date: isoDate(view === "month" ? new Date() : cursor) })}>
+            <CalendarPlus /> Novo agendamento
+          </button>
+        </div>
       </div>
 
       <div className="cal-toolbar">
         <div className="cal-nav">
-          <button
-            className="btn btn-ghost btn-icon btn-sm"
-            onClick={() => shift(-1)}
-            aria-label="Anterior"
-          >
+          <button className="btn btn-ghost btn-icon btn-sm" onClick={() => shift(-1)} aria-label="Anterior">
             <ChevronLeft />
           </button>
           <button className="btn btn-ghost btn-icon btn-sm" onClick={() => shift(1)} aria-label="Próximo">
@@ -129,25 +141,23 @@ export function Agenda() {
           Hoje
         </button>
         <div className="cal-title">{title}</div>
+        {agenda.loading && <span className="spinner" aria-label="Carregando" />}
         <div className="grow" />
         <div className="cal-views">
           {(["month", "week", "day"] as View[]).map((v) => (
-            <button
-              key={v}
-              className={`cal-view-btn ${view === v ? "active" : ""}`}
-              onClick={() => setView(v)}
-            >
+            <button key={v} className={`cal-view-btn ${view === v ? "active" : ""}`} onClick={() => setView(v)}>
               {v === "month" ? "Mês" : v === "week" ? "Semana" : "Dia"}
             </button>
           ))}
         </div>
       </div>
 
+      {agenda.error && <ErrorState message={agenda.error} onRetry={agenda.reload} />}
+
       {view === "month" && (
         <MonthView
           cursor={cursor}
-          db={db}
-          psyId={psyId}
+          items={items}
           onDay={(d) => {
             setCursor(d);
             setView("day");
@@ -156,22 +166,11 @@ export function Agenda() {
           onCreate={(date) => setCreateCtx({ date })}
         />
       )}
-      {view === "week" && (
+      {view !== "month" && (
         <TimeGrid
-          days={weekDays(cursor)}
-          db={db}
-          psyId={psyId}
-          workingHours={activePsychologist?.workingHours ?? []}
-          onSlot={(date, start) => setCreateCtx({ date, start })}
-          onEvent={setSelected}
-        />
-      )}
-      {view === "day" && (
-        <TimeGrid
-          days={[cursor]}
-          db={db}
-          psyId={psyId}
-          workingHours={activePsychologist?.workingHours ?? []}
+          days={view === "week" ? Array.from({ length: 7 }, (_, i) => addDays(from, i)) : [cursor]}
+          items={items}
+          workingHours={workingHours}
           onSlot={(date, start) => setCreateCtx({ date, start })}
           onEvent={setSelected}
         />
@@ -179,60 +178,56 @@ export function Agenda() {
 
       <div className="cal-legend">
         <span className="item">
-          <span className="swatch" style={{ background: "var(--success)" }} /> Confirmado
+          <span className="swatch" style={{ background: "var(--success)" }} /> Confirmada
         </span>
         <span className="item">
-          <span className="swatch" style={{ background: "var(--warning)" }} /> Pendente
+          <span className="swatch" style={{ background: "var(--warning)" }} /> A confirmar
         </span>
         <span className="item">
-          <span className="swatch" style={{ background: "var(--danger)" }} /> Cancelado
+          <span className="swatch" style={{ background: "var(--info)" }} /> Realizada / falta
+        </span>
+        <span className="item">
+          <span className="swatch" style={{ background: "var(--danger)" }} /> Cancelada
         </span>
         <span className="item">
           <span className="swatch" style={{ background: "var(--text-soft)" }} /> Bloqueio
         </span>
       </div>
 
-      {createCtx && (
-        <ScheduleModal ctx={createCtx} onClose={() => setCreateCtx(null)} />
+      {createCtx && psychologistId && (
+        <ScheduleModal ctx={createCtx} psychologistId={psychologistId} onClose={() => setCreateCtx(null)} onCreated={agenda.reload} />
       )}
-      {selectedEvent && (
-        <EventDetails event={selectedEvent} onClose={() => setSelected(null)} />
+      {selected?.type === "Session" && selected.sessionId && (
+        <SessionModal sessionId={selected.sessionId} onClose={() => setSelected(null)} onChanged={agenda.reload} />
       )}
+      {selected?.type === "Block" && <BlockDetails event={toEvent(selected)} onClose={() => setSelected(null)} onDeleted={agenda.reload} />}
     </>
   );
 }
 
-function weekDays(cursor: Date): Date[] {
-  const ws = startOfWeek(cursor, { weekStartsOn: 0 });
-  return Array.from({ length: 7 }, (_, i) => addDays(ws, i));
-}
-
-/* ---------------- Week / Day time grid ---------------- */
+/* ---------------- Semana / dia ---------------- */
 function TimeGrid({
   days,
-  db,
-  psyId,
+  items,
   workingHours,
   onSlot,
   onEvent,
 }: {
   days: Date[];
-  db: ReturnType<typeof useStore>["db"];
-  psyId: string;
+  items: AgendaItem[];
   workingHours: WorkingHour[];
   onSlot: (date: string, start: string) => void;
-  onEvent: (s: Schedule) => void;
+  onEvent: (item: AgendaItem) => void;
 }) {
   const now = useNow();
-  const cols = days.length;
-  const template = `54px repeat(${cols}, minmax(0, 1fr))`;
+  const template = `54px repeat(${days.length}, minmax(0, 1fr))`;
 
   return (
     <div className="cal card">
       <div className="cal-week-head" style={{ gridTemplateColumns: template }}>
         <div className="cal-corner" />
         {days.map((d) => (
-          <div key={iso(d)} className={`cal-dayhead ${isToday(d) ? "today" : ""}`}>
+          <div key={isoDate(d)} className={`cal-dayhead ${isToday(d) ? "today" : ""}`}>
             <div className="dow">{format(d, "EEE", { locale: ptBR })}</div>
             <div className="dnum">{format(d, "d")}</div>
           </div>
@@ -250,13 +245,12 @@ function TimeGrid({
           </div>
 
           {days.map((d) => {
-            const dateISO = iso(d);
+            const dateISO = isoDate(d);
             const weekday = d.getDay();
-            const ranges = workingHours.filter((w) => w.dayOfWeek === weekday);
-            const events = packDay(eventsForDate(db, psyId, dateISO));
-            const showNow = isToday(d);
+            const ranges = workingHours.filter((w) => dayIndex(w.dayOfWeek) === weekday);
+            const events = packDay(eventsForDate(items, dateISO));
             const nowMin = now.getHours() * 60 + now.getMinutes();
-            const nowVisible = nowMin >= DAY_START_HOUR * 60 && nowMin <= DAY_END_HOUR * 60;
+            const nowVisible = isToday(d) && nowMin >= DAY_START_HOUR * 60 && nowMin <= DAY_END_HOUR * 60;
 
             return (
               <div
@@ -270,7 +264,7 @@ function TimeGrid({
                   <div
                     key={i}
                     className="cal-work"
-                    style={{ top: yForTime(r.start), height: yForTime(r.end) - yForTime(r.start) }}
+                    style={{ top: yForTime(hm(r.startTime)), height: yForTime(hm(r.endTime)) - yForTime(hm(r.startTime)) }}
                   />
                 ))}
 
@@ -283,12 +277,10 @@ function TimeGrid({
                   />
                 ))}
 
-                {showNow && nowVisible && (
-                  <div className="cal-now" style={{ top: yForMinutes(nowMin) }} />
-                )}
+                {nowVisible && <div className="cal-now" style={{ top: yForMinutes(nowMin) }} />}
 
                 {events.map((ev) => (
-                  <EventBlock key={ev.schedule.id} ev={ev} onClick={() => onEvent(ev.schedule)} />
+                  <EventBlock key={ev.item.scheduleId} ev={ev} onClick={() => onEvent(ev.item)} />
                 ))}
               </div>
             );
@@ -301,8 +293,7 @@ function TimeGrid({
 
 function EventBlock({ ev, onClick }: { ev: CalEvent; onClick: () => void }) {
   const top = yForMinutes(ev.startMin);
-  const rawH = yForMinutes(ev.endMin) - top;
-  const height = Math.max(22, rawH - 2);
+  const height = Math.max(22, yForMinutes(ev.endMin) - top - 2);
   const widthPct = 100 / ev.lanes;
   return (
     <div
@@ -312,7 +303,7 @@ function EventBlock({ ev, onClick }: { ev: CalEvent; onClick: () => void }) {
         height,
         left: `calc(${ev.lane * widthPct}% + 2px)`,
         width: `calc(${widthPct}% - 4px)`,
-        // @ts-expect-error custom props
+        // @ts-expect-error variáveis CSS
         "--ev-color": ev.colors.color,
         "--ev-bg": ev.colors.bg,
       }}
@@ -323,28 +314,26 @@ function EventBlock({ ev, onClick }: { ev: CalEvent; onClick: () => void }) {
       title={ev.title}
     >
       <div className="et">
-        {ev.schedule.start}
-        {height > 34 ? `–${ev.schedule.end}` : ""}
+        {ev.start}
+        {height > 34 ? `–${ev.end}` : ""}
       </div>
       <div className="en">{ev.title}</div>
     </div>
   );
 }
 
-/* ---------------- Month view ---------------- */
+/* ---------------- Mês ---------------- */
 function MonthView({
   cursor,
-  db,
-  psyId,
+  items,
   onDay,
   onEvent,
   onCreate,
 }: {
   cursor: Date;
-  db: ReturnType<typeof useStore>["db"];
-  psyId: string;
+  items: AgendaItem[];
   onDay: (d: Date) => void;
-  onEvent: (s: Schedule) => void;
+  onEvent: (item: AgendaItem) => void;
   onCreate: (date: string) => void;
 }) {
   const gridStart = startOfWeek(startOfMonth(cursor), { weekStartsOn: 0 });
@@ -361,33 +350,32 @@ function MonthView({
       </div>
       <div className="cal-month-grid">
         {days.map((d) => {
-          const dateISO = iso(d);
-          const events = eventsForDate(db, psyId, dateISO);
-          const out = !isSameMonth(d, cursor);
+          const dateISO = isoDate(d);
+          const events = eventsForDate(items, dateISO);
           return (
             <div
               key={dateISO}
-              className={`cal-cell ${out ? "out" : ""} ${isToday(d) ? "today" : ""}`}
+              className={`cal-cell ${!isSameMonth(d, cursor) ? "out" : ""} ${isToday(d) ? "today" : ""}`}
               onDoubleClick={() => onCreate(dateISO)}
               onClick={() => onDay(d)}
             >
               <span className="cal-cell-num">{format(d, "d")}</span>
               {events.slice(0, 3).map((ev) => (
                 <div
-                  key={ev.schedule.id}
+                  key={ev.item.scheduleId}
                   className={`cal-chip ${ev.isCancelled ? "cancelled" : ""}`}
                   style={{
-                    // @ts-expect-error custom props
+                    // @ts-expect-error variáveis CSS
                     "--ev-color": ev.colors.color,
-                    "--ev-bg": ev.isBlock ? "var(--surface-2)" : ev.colors.bg,
+                    "--ev-bg": ev.colors.bg,
                   }}
                   onClick={(e) => {
                     e.stopPropagation();
-                    onEvent(ev.schedule);
+                    onEvent(ev.item);
                   }}
-                  title={`${ev.schedule.start} ${ev.title}`}
+                  title={`${ev.start} ${ev.title}`}
                 >
-                  <span className="ct">{ev.schedule.start}</span>
+                  <span className="ct">{ev.start}</span>
                   <span className="truncate">{ev.title}</span>
                 </div>
               ))}
@@ -400,47 +388,118 @@ function MonthView({
   );
 }
 
-/* ---------------- Create modal ---------------- */
-const START_OPTIONS = timeOptions(DAY_START_HOUR, DAY_END_HOUR - 1, 30);
-const END_OPTIONS = timeOptions(DAY_START_HOUR + 1, DAY_END_HOUR, 30);
-
-function addHour(hhmm: string): string {
-  const [h, m] = hhmm.split(":").map(Number);
-  return `${String(Math.min(DAY_END_HOUR, h + 1)).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-}
-
-function ScheduleModal({ ctx, onClose }: { ctx: CreateCtx; onClose: () => void }) {
-  const { db, activePsychologist, createSchedule, notify } = useStore();
-  const [type, setType] = useState<ScheduleType>(ScheduleType.SESSION);
+/* ---------------- Novo agendamento ---------------- */
+function ScheduleModal({
+  ctx,
+  psychologistId,
+  onClose,
+  onCreated,
+}: {
+  ctx: CreateCtx;
+  psychologistId: string;
+  onClose: () => void;
+  onCreated: () => void;
+}) {
+  const { settings, notify } = useStore();
+  const [kind, setKind] = useState<"session" | "block">("session");
   const [date, setDate] = useState(ctx.date);
   const [start, setStart] = useState(ctx.start ?? "09:00");
-  const [end, setEnd] = useState(addHour(ctx.start ?? "09:00"));
+  const [duration, setDuration] = useState(settings?.sessionDurationMinutes ?? 50);
+  const [price, setPrice] = useState(settings?.sessionDefaultPrice?.toFixed(2).replace(".", ",") ?? "");
   const [patientId, setPatientId] = useState("");
-  const [status, setStatus] = useState<ScheduleStatus>(ScheduleStatus.Confirmed);
-  const [title, setTitle] = useState("");
+  const [confirmNow, setConfirmNow] = useState(true);
+  const [repeat, setRepeat] = useState(false);
+  const [recurrence, setRecurrence] = useState<RecurrenceType>("Weekly");
+  const [until, setUntil] = useState("");
+  // bloqueio
+  const [endDate, setEndDate] = useState(ctx.date);
+  const [wholeDay, setWholeDay] = useState(!ctx.start);
+  const [blockEnd, setBlockEnd] = useState(ctx.start ? `${String(Number(ctx.start.slice(0, 2)) + 1).padStart(2, "0")}:00` : "18:00");
+  const [reason, setReason] = useState("");
+
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [generation, setGeneration] = useState<RecurrenceGeneration | null>(null);
 
-  const patients = useMemo(
-    () => [...db.patients].sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
-    [db.patients],
-  );
+  async function submit() {
+    setError(null);
+    if (kind === "session" && !patientId) return setError("Selecione o paciente.");
+    const parsedPrice = parseMoney(price);
+    setBusy(true);
+    try {
+      if (kind === "block") {
+        await api.post("/schedule-blocks", {
+          startDate: date,
+          endDate: endDate || date,
+          startTime: wholeDay ? null : start,
+          endTime: wholeDay ? null : blockEnd,
+          reason: reason.trim() || null,
+          psychologistId,
+        });
+        notify("success", "Bloqueio criado.");
+        onCreated();
+        onClose();
+      } else if (repeat) {
+        const result = await api.post<RecurrenceGeneration>("/recurrences", {
+          patientId,
+          psychologistId,
+          type: recurrence,
+          startDate: date,
+          startTime: start,
+          endDate: until || null,
+          durationMinutes: duration,
+          price: parsedPrice,
+        });
+        notify("success", `${result.scheduled.length} sessões agendadas.`);
+        onCreated();
+        if (result.skipped.length > 0) setGeneration(result);
+        else onClose();
+      } else {
+        const session = await api.post<{ id: string }>("/sessions", {
+          patientId,
+          psychologistId,
+          date,
+          startTime: start,
+          durationMinutes: duration,
+          price: parsedPrice,
+        });
+        if (confirmNow) await api.post(`/sessions/${session.id}/confirm`);
+        notify("success", "Sessão agendada.");
+        onCreated();
+        onClose();
+      }
+    } catch (e) {
+      setError(errorMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  }
 
-  function submit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!activePsychologist) return setError("Nenhum psicólogo ativo.");
-    const res = createSchedule({
-      date,
-      start,
-      end,
-      psychologistId: activePsychologist.id,
-      type,
-      patientId: type === ScheduleType.SESSION ? patientId : null,
-      status,
-      title: type === ScheduleType.BLOCK ? title.trim() || "Bloqueio" : undefined,
-    });
-    if (!res.ok) return setError(res.error ?? "Não foi possível agendar.");
-    notify("success", type === ScheduleType.SESSION ? "Sessão agendada." : "Bloqueio criado.");
-    onClose();
+  if (generation) {
+    return (
+      <Modal
+        title="Recorrência criada"
+        onClose={onClose}
+        footer={
+          <button className="btn btn-primary" onClick={onClose}>
+            Entendi
+          </button>
+        }
+      >
+        <div className="col gap-3">
+          <div className="notice">
+            {generation.scheduled.length} sessões agendadas até {fmtDateShort(generation.recurrence.generatedUntil)}. Algumas datas foram puladas:
+          </div>
+          <ul className="small">
+            {generation.skipped.map((s) => (
+              <li key={s.date}>
+                <b>{fmtDateShort(s.date)}</b> — {s.reason}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </Modal>
+    );
   }
 
   return (
@@ -452,228 +511,186 @@ function ScheduleModal({ ctx, onClose }: { ctx: CreateCtx; onClose: () => void }
           <button className="btn btn-ghost" onClick={onClose}>
             Cancelar
           </button>
-          <button className="btn btn-primary" type="submit" form="sched-form">
-            Agendar
+          <button className="btn btn-primary" disabled={busy} onClick={submit}>
+            {busy ? "Salvando…" : kind === "session" ? "Agendar" : "Bloquear"}
           </button>
         </>
       }
     >
-      <form id="sched-form" onSubmit={submit} className="col gap-4" noValidate>
+      <div className="col gap-4">
         {error && (
-          <div className="auth-error">
+          <div className="auth-error" role="alert">
             <Clock size={16} /> {error}
           </div>
         )}
 
         <div className="cal-views" style={{ alignSelf: "flex-start" }}>
-          <button
-            type="button"
-            className={`cal-view-btn ${type === ScheduleType.SESSION ? "active" : ""}`}
-            onClick={() => setType(ScheduleType.SESSION)}
-          >
+          <button type="button" className={`cal-view-btn ${kind === "session" ? "active" : ""}`} onClick={() => setKind("session")}>
             Sessão
           </button>
-          <button
-            type="button"
-            className={`cal-view-btn ${type === ScheduleType.BLOCK ? "active" : ""}`}
-            onClick={() => setType(ScheduleType.BLOCK)}
-          >
+          <button type="button" className={`cal-view-btn ${kind === "block" ? "active" : ""}`} onClick={() => setKind("block")}>
             Bloqueio
           </button>
         </div>
 
-        {type === ScheduleType.SESSION ? (
-          <div className="field">
-            <label className="label">
-              Paciente <span className="req">*</span>
+        {kind === "session" ? (
+          <>
+            <div className="field">
+              <label className="label" htmlFor="patient">
+                Paciente <span className="req">*</span>
+              </label>
+              <PatientSelect id="patient" value={patientId} onChange={setPatientId} />
+            </div>
+            <div className="grid-form">
+              <div className="field">
+                <label className="label" htmlFor="date">
+                  {repeat ? "Primeira sessão" : "Data"}
+                </label>
+                <input id="date" className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              </div>
+              <div className="field">
+                <label className="label" htmlFor="start">
+                  Início
+                </label>
+                <input id="start" className="input" type="time" step={300} value={start} onChange={(e) => setStart(e.target.value)} />
+              </div>
+              <div className="field">
+                <label className="label" htmlFor="duration">
+                  Duração (min)
+                </label>
+                <input id="duration" className="input" type="number" min={15} max={240} value={duration} onChange={(e) => setDuration(Number(e.target.value))} />
+              </div>
+              <div className="field">
+                <label className="label" htmlFor="price">
+                  Valor (R$)
+                </label>
+                <input id="price" className="input" inputMode="decimal" placeholder="Padrão da clínica" value={price} onChange={(e) => setPrice(e.target.value)} />
+              </div>
+            </div>
+
+            <label className="row gap-2 small">
+              <input type="checkbox" checked={repeat} onChange={(e) => setRepeat(e.target.checked)} /> Repetir (recorrência)
             </label>
-            <select
-              className="select"
-              value={patientId}
-              onChange={(e) => {
-                setPatientId(e.target.value);
-                setError(null);
-              }}
-            >
-              <option value="">Selecione um paciente…</option>
-              {patients.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </div>
+            {repeat ? (
+              <div className="grid-form">
+                <div className="field">
+                  <label className="label" htmlFor="recType">
+                    Frequência
+                  </label>
+                  <select id="recType" className="select" value={recurrence} onChange={(e) => setRecurrence(e.target.value as RecurrenceType)}>
+                    {(Object.keys(recurrenceTypeLabel) as RecurrenceType[]).map((t) => (
+                      <option key={t} value={t}>
+                        {recurrenceTypeLabel[t]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="field">
+                  <label className="label" htmlFor="until">
+                    Até (opcional)
+                  </label>
+                  <input id="until" className="input" type="date" value={until} min={date} onChange={(e) => setUntil(e.target.value)} />
+                </div>
+                <div className="small muted span-2">As sessões são criadas para os próximos 3 meses; depois é possível estender na ficha do paciente.</div>
+              </div>
+            ) : (
+              <label className="row gap-2 small">
+                <input type="checkbox" checked={confirmNow} onChange={(e) => setConfirmNow(e.target.checked)} /> Já confirmar com o paciente
+              </label>
+            )}
+          </>
         ) : (
-          <div className="field">
-            <label className="label">Descrição do bloqueio</label>
-            <input
-              className="input"
-              placeholder="Almoço, Reunião, Indisponível…"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-          </div>
+          <>
+            <div className="grid-form">
+              <div className="field">
+                <label className="label" htmlFor="bStart">
+                  De
+                </label>
+                <input id="bStart" className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              </div>
+              <div className="field">
+                <label className="label" htmlFor="bEnd">
+                  Até
+                </label>
+                <input id="bEnd" className="input" type="date" value={endDate} min={date} onChange={(e) => setEndDate(e.target.value)} />
+              </div>
+            </div>
+            <label className="row gap-2 small">
+              <input type="checkbox" checked={wholeDay} onChange={(e) => setWholeDay(e.target.checked)} /> Dia inteiro
+            </label>
+            {!wholeDay && (
+              <div className="grid-form">
+                <div className="field">
+                  <label className="label" htmlFor="bFrom">
+                    Início
+                  </label>
+                  <input id="bFrom" className="input" type="time" step={300} value={start} onChange={(e) => setStart(e.target.value)} />
+                </div>
+                <div className="field">
+                  <label className="label" htmlFor="bTo">
+                    Término
+                  </label>
+                  <input id="bTo" className="input" type="time" step={300} value={blockEnd} onChange={(e) => setBlockEnd(e.target.value)} />
+                </div>
+              </div>
+            )}
+            <div className="field">
+              <label className="label" htmlFor="bReason">
+                Motivo
+              </label>
+              <input id="bReason" className="input" placeholder="Almoço, férias, congresso…" maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} />
+            </div>
+          </>
         )}
-
-        <div className="field">
-          <label className="label">Data</label>
-          <input
-            className="input"
-            type="date"
-            value={date}
-            onChange={(e) => {
-              setDate(e.target.value);
-              setError(null);
-            }}
-          />
-        </div>
-
-        <div className="grid-form">
-          <div className="field">
-            <label className="label">Início</label>
-            <select
-              className="select"
-              value={start}
-              onChange={(e) => {
-                setStart(e.target.value);
-                if (e.target.value >= end) setEnd(addHour(e.target.value));
-                setError(null);
-              }}
-            >
-              {START_OPTIONS.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="field">
-            <label className="label">Término</label>
-            <select
-              className="select"
-              value={end}
-              onChange={(e) => {
-                setEnd(e.target.value);
-                setError(null);
-              }}
-            >
-              {END_OPTIONS.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {type === ScheduleType.SESSION && (
-          <div className="field">
-            <label className="label">Situação</label>
-            <select
-              className="select"
-              value={status}
-              onChange={(e) => setStatus(Number(e.target.value) as ScheduleStatus)}
-            >
-              <option value={ScheduleStatus.Confirmed}>Confirmado</option>
-              <option value={ScheduleStatus.Pending}>Pendente</option>
-            </select>
-          </div>
-        )}
-      </form>
+      </div>
     </Modal>
   );
 }
 
-/* ---------------- Details modal ---------------- */
-function EventDetails({ event, onClose }: { event: CalEvent; onClose: () => void }) {
-  const { setScheduleStatus, deleteSchedule, notify } = useStore();
-  const s = event.schedule;
-  const meta = scheduleStatusMeta[s.status];
+/* ---------------- Bloqueio ---------------- */
+function BlockDetails({ event, onClose, onDeleted }: { event: CalEvent; onClose: () => void; onDeleted: () => void }) {
+  const { notify } = useStore();
+  const [busy, setBusy] = useState(false);
+
+  async function remove() {
+    setBusy(true);
+    try {
+      await api.del(`/schedule-blocks/${event.item.scheduleId}`);
+      notify("info", "Bloqueio removido.");
+      onDeleted();
+      onClose();
+    } catch (e) {
+      notify("error", errorMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <Modal
-      title={event.isBlock ? "Bloqueio" : "Detalhes da sessão"}
+      title="Bloqueio"
       onClose={onClose}
       footer={
         <>
-          <button
-            className="btn btn-danger"
-            onClick={() => {
-              deleteSchedule(s.id);
-              notify("info", "Agendamento removido.");
-              onClose();
-            }}
-          >
-            <Trash2 /> Excluir
+          <button className="btn btn-danger" disabled={busy} onClick={remove}>
+            <Trash2 /> Remover bloqueio
           </button>
           <div className="grow" />
-          {s.status !== ScheduleStatus.Cancelled ? (
-            <>
-              {s.status !== ScheduleStatus.Confirmed && (
-                <button
-                  className="btn btn-subtle"
-                  onClick={() => {
-                    setScheduleStatus(s.id, ScheduleStatus.Confirmed);
-                    notify("success", "Agendamento confirmado.");
-                    onClose();
-                  }}
-                >
-                  Confirmar
-                </button>
-              )}
-              <button
-                className="btn btn-ghost"
-                onClick={() => {
-                  setScheduleStatus(s.id, ScheduleStatus.Cancelled);
-                  notify("info", "Agendamento cancelado.");
-                  onClose();
-                }}
-              >
-                Cancelar sessão
-              </button>
-            </>
-          ) : (
-            <button
-              className="btn btn-subtle"
-              onClick={() => {
-                setScheduleStatus(s.id, ScheduleStatus.Pending);
-                notify("info", "Agendamento reativado.");
-                onClose();
-              }}
-            >
-              Reativar
-            </button>
-          )}
+          <button className="btn btn-ghost" onClick={onClose}>
+            Fechar
+          </button>
         </>
       }
     >
       <div className="ev-meta">
-        {!event.isBlock && (
-          <div className="ev-line">
-            <User />
-            <span className="strong">{event.patientName ?? "Sessão"}</span>
-          </div>
-        )}
-        {event.isBlock && (
-          <div className="ev-line">
-            <User />
-            <span className="strong">{event.title}</span>
-          </div>
-        )}
+        <div className="ev-line">
+          <User />
+          <span className="strong">{event.title}</span>
+        </div>
         <div className="ev-line">
           <Clock />
           <span>
-            {capitalize(fmtDateLong(s.date))} · {s.start}–{s.end}{" "}
-            <span className="muted">({durationLabel(s.start, s.end)})</span>
-          </span>
-        </div>
-        <div className="ev-line">
-          <span style={{ width: 18 }} />
-          <span className="row gap-2">
-            <span className={`badge ${meta.badge}`}>
-              <span className="dot" /> {meta.label}
-            </span>
-            <span className="badge">{scheduleTypeLabel(s.type)}</span>
+            {capitalize(fmtDateLong(event.item.date))} · {event.start}–{event.end} <span className="muted">({durationLabel(event.start, event.end)})</span>
           </span>
         </div>
       </div>

@@ -46,7 +46,9 @@ public static class CommonServices
         services.AddCors(options => options.AddDefaultPolicy(policy => policy
             .WithOrigins(allowedOrigins)
             .AllowAnyHeader()
-            .AllowAnyMethod()));
+            .AllowAnyMethod()
+            // O front lê o nome do arquivo dos PDFs e anexos baixados.
+            .WithExposedHeaders("Content-Disposition", "Retry-After")));
 
         services.AddHealthChecks().AddDbContextCheck<AppDbContext>("database");
 

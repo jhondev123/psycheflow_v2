@@ -8,23 +8,9 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import {
-  type ApproachType,
-  type Database,
-  type Patient,
-  type Psychologist,
-  type Schedule,
-  type Session,
-  type User,
-  ScheduleStatus,
-  ScheduleType,
-  SessionStatus,
-} from "@/types";
-import { buildSeed } from "@/data/seed";
-import { validateSchedule, type ScheduleInput } from "@/lib/scheduling";
+import { api, getToken, onUnauthorized, setToken } from "@/lib/api";
+import type { AuthResponse, Me, Psychologist, RegisterInput, Settings } from "@/types";
 
-const DB_KEY = "psycheflow.db.v1";
-const SESSION_KEY = "psycheflow.session.v1";
 const THEME_KEY = "psycheflow.theme.v1";
 
 type Theme = "light" | "dark";
@@ -35,129 +21,50 @@ interface Toast {
   message: string;
 }
 
-interface Result {
-  ok: boolean;
-  error?: string;
-}
-
-export interface RegisterInput {
-  name: string;
-  email: string;
-  password: string;
-  licenseNumber: string;
-  approach: ApproachType;
-}
-
-export interface PatientInput {
-  name: string;
-  email: string;
-  cpf?: string;
-  phone?: string;
-  birthDate?: string;
-  notes?: string;
-}
-
-export interface ProfileInput {
-  name: string;
-  phone?: string;
-  approach: ApproachType;
-  licenseNumber: string;
-}
-
 interface AppStoreValue {
-  db: Database;
-  currentUser: User | null;
-  activePsychologist: Psychologist | null;
+  /** Usuário logado (GET /auth/me). */
+  me: Me | null;
+  /** Carregando a sessão salva ao abrir o app. */
+  booting: boolean;
+  /** Perfil de psicólogo do usuário logado, quando existir. */
+  psychologist: Psychologist | null;
+  settings: Settings | null;
+  isManagement: boolean;
+  isPsychologist: boolean;
   theme: Theme;
   toasts: Toast[];
 
-  // auth
-  login: (email: string, password: string) => Result;
-  register: (input: RegisterInput) => Result;
+  login: (email: string, password: string) => Promise<Me>;
+  register: (input: RegisterInput) => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   logout: () => void;
+  refreshProfile: () => Promise<void>;
+  refreshSettings: () => Promise<void>;
 
-  // patients
-  addPatient: (input: PatientInput) => Patient;
-  updatePatient: (id: string, input: PatientInput) => void;
-  deletePatient: (id: string) => void;
-
-  // schedules
-  createSchedule: (input: ScheduleInput) => Result & { schedule?: Schedule };
-  setScheduleStatus: (id: string, status: ScheduleStatus) => void;
-  moveSchedule: (id: string, date: string, start: string, end: string) => Result;
-  deleteSchedule: (id: string) => void;
-
-  // sessions
-  completeSession: (sessionId: string, feedback: string, description: string) => void;
-  setSessionStatus: (sessionId: string, status: SessionStatus) => void;
-
-  // psychologist
-  setWorkingHours: (psychologistId: string, hours: Psychologist["workingHours"]) => void;
-  updateProfile: (input: ProfileInput) => void;
-
-  // misc
   notify: (type: ToastType, message: string) => void;
   dismissToast: (id: string) => void;
   toggleTheme: () => void;
-  resetData: () => void;
 }
 
 const AppStoreContext = createContext<AppStoreValue | null>(null);
 
-function loadDb(): Database {
-  try {
-    const raw = localStorage.getItem(DB_KEY);
-    if (raw) return JSON.parse(raw) as Database;
-  } catch {
-    /* fall through to seed */
-  }
-  const seed = buildSeed();
-  localStorage.setItem(DB_KEY, JSON.stringify(seed));
-  return seed;
-}
-
 function loadTheme(): Theme {
-  const stored = localStorage.getItem(THEME_KEY);
-  return stored === "dark" ? "dark" : "light";
+  return localStorage.getItem(THEME_KEY) === "dark" ? "dark" : "light";
 }
 
 export function AppStoreProvider({ children }: { children: ReactNode }) {
-  const [db, setDb] = useState<Database>(loadDb);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(() =>
-    localStorage.getItem(SESSION_KEY),
-  );
+  const [me, setMe] = useState<Me | null>(null);
+  const [booting, setBooting] = useState(() => getToken() !== null);
+  const [psychologist, setPsychologist] = useState<Psychologist | null>(null);
+  const [settings, setSettings] = useState<Settings | null>(null);
   const [theme, setTheme] = useState<Theme>(loadTheme);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const timers = useRef<Record<string, number>>({});
-
-  // Persist on change.
-  useEffect(() => {
-    localStorage.setItem(DB_KEY, JSON.stringify(db));
-  }, [db]);
-
-  useEffect(() => {
-    if (currentUserId) localStorage.setItem(SESSION_KEY, currentUserId);
-    else localStorage.removeItem(SESSION_KEY);
-  }, [currentUserId]);
 
   useEffect(() => {
     localStorage.setItem(THEME_KEY, theme);
     document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
-
-  const currentUser = useMemo(
-    () => db.users.find((u) => u.id === currentUserId) ?? null,
-    [db.users, currentUserId],
-  );
-
-  const activePsychologist = useMemo(() => {
-    if (!currentUser) return null;
-    return (
-      db.psychologists.find((p) => p.userId === currentUser.id) ??
-      db.psychologists.find((p) => p.companyId === currentUser.companyId) ??
-      null
-    );
-  }, [db.psychologists, currentUser]);
 
   const dismissToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -167,294 +74,113 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     (type: ToastType, message: string) => {
       const id = crypto.randomUUID();
       setToasts((prev) => [...prev, { id, type, message }]);
-      timers.current[id] = window.setTimeout(() => dismissToast(id), 3600);
+      timers.current[id] = window.setTimeout(() => dismissToast(id), type === "error" ? 6000 : 3600);
     },
     [dismissToast],
   );
 
   useEffect(() => {
     const t = timers.current;
-    return () => {
-      Object.values(t).forEach((handle) => clearTimeout(handle));
-    };
+    return () => Object.values(t).forEach((handle) => clearTimeout(handle));
   }, []);
 
-  // ---- Auth ----------------------------------------------------------
-  const login = useCallback(
-    (email: string, password: string): Result => {
-      const key = email.trim().toLowerCase();
-      const user = db.users.find((u) => u.email.toLowerCase() === key);
-      if (!user || db.credentials[user.email] !== password) {
-        return { ok: false, error: "E-mail ou senha inválidos." };
-      }
-      setCurrentUserId(user.id);
-      return { ok: true };
+  const logout = useCallback(() => {
+    setToken(null);
+    setMe(null);
+    setPsychologist(null);
+    setSettings(null);
+  }, []);
+
+  /** Carrega usuário, perfil de psicólogo e configurações da clínica. */
+  const loadSession = useCallback(async (): Promise<Me> => {
+    const current = await api.get<Me>("/auth/me");
+    setMe(current);
+    if (!current.mustChangePassword) {
+      const [profile, clinic] = await Promise.all([
+        current.psychologistId ? api.get<Psychologist>("/psychologists/me") : Promise.resolve(null),
+        api.get<Settings>("/settings"),
+      ]);
+      setPsychologist(profile);
+      setSettings(clinic);
+    }
+    return current;
+  }, []);
+
+  // Sessão salva: valida o token ao abrir o app.
+  useEffect(() => {
+    onUnauthorized(() => {
+      logout();
+      notify("info", "Sua sessão expirou. Entre novamente.");
+    });
+    if (getToken()) {
+      loadSession()
+        .catch(() => logout())
+        .finally(() => setBooting(false));
+    }
+    return () => onUnauthorized(null);
+  }, [loadSession, logout, notify]);
+
+  const startSession = useCallback(
+    async (auth: AuthResponse): Promise<Me> => {
+      setToken(auth.accessToken);
+      return loadSession();
     },
-    [db.users, db.credentials],
+    [loadSession],
+  );
+
+  const login = useCallback(
+    async (email: string, password: string) =>
+      startSession(await api.post<AuthResponse>("/auth/login", { email: email.trim(), password })),
+    [startSession],
   );
 
   const register = useCallback(
-    (input: RegisterInput): Result => {
-      const email = input.email.trim().toLowerCase();
-      if (db.users.some((u) => u.email.toLowerCase() === email)) {
-        return { ok: false, error: "Já existe uma conta com este e-mail." };
-      }
-      const companyId = db.companies[0]?.id ?? crypto.randomUUID();
-      const userId = crypto.randomUUID();
-      const newUser: User = {
-        id: userId,
-        name: input.name.trim(),
-        email: input.email.trim(),
-        role: "Psychologist",
-        companyId,
-        createdAt: new Date().toISOString(),
-      };
-      const newPsy: Psychologist = {
-        id: crypto.randomUUID(),
-        userId,
-        name: input.name.trim(),
-        email: input.email.trim(),
-        licenseNumber: input.licenseNumber.trim(),
-        approach: input.approach,
-        companyId,
-        workingHours: [1, 2, 3, 4, 5].map((d) => ({ dayOfWeek: d, start: "08:00", end: "18:00" })),
-      };
-      setDb((prev) => ({
-        ...prev,
-        users: [...prev.users, newUser],
-        psychologists: [...prev.psychologists, newPsy],
-        credentials: { ...prev.credentials, [newUser.email]: input.password },
-      }));
-      setCurrentUserId(userId);
-      return { ok: true };
+    async (input: RegisterInput) => {
+      await startSession(await api.post<AuthResponse>("/auth/register", input));
     },
-    [db.users, db.companies],
+    [startSession],
   );
 
-  const logout = useCallback(() => setCurrentUserId(null), []);
-
-  // ---- Patients ------------------------------------------------------
-  const addPatient = useCallback(
-    (input: PatientInput): Patient => {
-      const patient: Patient = {
-        id: crypto.randomUUID(),
-        companyId: currentUser?.companyId ?? db.companies[0]?.id ?? "",
-        createdAt: new Date().toISOString(),
-        name: input.name.trim(),
-        email: input.email.trim(),
-        cpf: input.cpf?.trim() || undefined,
-        phone: input.phone?.trim() || undefined,
-        birthDate: input.birthDate || undefined,
-        notes: input.notes?.trim() || undefined,
-      };
-      setDb((prev) => ({ ...prev, patients: [...prev.patients, patient] }));
-      return patient;
+  const changePassword = useCallback(
+    async (currentPassword: string, newPassword: string) => {
+      await startSession(await api.post<AuthResponse>("/auth/change-password", { currentPassword, newPassword }));
     },
-    [currentUser, db.companies],
+    [startSession],
   );
 
-  const updatePatient = useCallback((id: string, input: PatientInput) => {
-    setDb((prev) => ({
-      ...prev,
-      patients: prev.patients.map((p) =>
-        p.id === id
-          ? {
-              ...p,
-              name: input.name.trim(),
-              email: input.email.trim(),
-              cpf: input.cpf?.trim() || undefined,
-              phone: input.phone?.trim() || undefined,
-              birthDate: input.birthDate || undefined,
-              notes: input.notes?.trim() || undefined,
-            }
-          : p,
-      ),
-    }));
+  const refreshProfile = useCallback(async () => {
+    if (me?.psychologistId) setPsychologist(await api.get<Psychologist>("/psychologists/me"));
+    setMe(await api.get<Me>("/auth/me"));
+  }, [me?.psychologistId]);
+
+  const refreshSettings = useCallback(async () => {
+    setSettings(await api.get<Settings>("/settings"));
   }, []);
-
-  const deletePatient = useCallback((id: string) => {
-    setDb((prev) => ({ ...prev, patients: prev.patients.filter((p) => p.id !== id) }));
-  }, []);
-
-  // ---- Schedules -----------------------------------------------------
-  const createSchedule = useCallback(
-    (input: ScheduleInput): Result & { schedule?: Schedule } => {
-      const error = validateSchedule(db, input);
-      if (error) return { ok: false, error };
-
-      const scheduleId = crypto.randomUUID();
-      const companyId = currentUser?.companyId ?? db.companies[0]?.id ?? "";
-      let sessionId: string | undefined;
-      const newSessions: Session[] = [];
-
-      if (input.type === ScheduleType.SESSION && input.patientId) {
-        sessionId = crypto.randomUUID();
-        newSessions.push({
-          id: sessionId,
-          scheduleId,
-          psychologistId: input.psychologistId,
-          patientId: input.patientId,
-          companyId,
-          description: "",
-          feedback: "",
-          status: SessionStatus.Scheduled,
-          createdAt: new Date().toISOString(),
-        });
-      }
-
-      const schedule: Schedule = {
-        id: scheduleId,
-        date: input.date,
-        start: input.start,
-        end: input.end,
-        psychologistId: input.psychologistId,
-        type: input.type,
-        status: input.status ?? ScheduleStatus.Pending,
-        companyId,
-        sessionId: sessionId ?? null,
-        title: input.title,
-      };
-
-      setDb((prev) => ({
-        ...prev,
-        schedules: [...prev.schedules, schedule],
-        sessions: [...prev.sessions, ...newSessions],
-      }));
-      return { ok: true, schedule };
-    },
-    [db, currentUser, db.companies],
-  );
-
-  const setScheduleStatus = useCallback((id: string, status: ScheduleStatus) => {
-    setDb((prev) => ({
-      ...prev,
-      schedules: prev.schedules.map((s) => (s.id === id ? { ...s, status } : s)),
-    }));
-  }, []);
-
-  const moveSchedule = useCallback(
-    (id: string, date: string, start: string, end: string): Result => {
-      const existing = db.schedules.find((s) => s.id === id);
-      if (!existing) return { ok: false, error: "Agendamento não encontrado." };
-      const session = db.sessions.find((ss) => ss.id === existing.sessionId);
-      const error = validateSchedule(
-        db,
-        {
-          date,
-          start,
-          end,
-          psychologistId: existing.psychologistId,
-          type: existing.type,
-          patientId: session?.patientId ?? null,
-        },
-        { ignoreScheduleId: id, allowPast: true },
-      );
-      if (error) return { ok: false, error };
-      setDb((prev) => ({
-        ...prev,
-        schedules: prev.schedules.map((s) => (s.id === id ? { ...s, date, start, end } : s)),
-      }));
-      return { ok: true };
-    },
-    [db],
-  );
-
-  const deleteSchedule = useCallback((id: string) => {
-    setDb((prev) => {
-      const target = prev.schedules.find((s) => s.id === id);
-      return {
-        ...prev,
-        schedules: prev.schedules.filter((s) => s.id !== id),
-        sessions: prev.sessions.filter((ss) => ss.id !== target?.sessionId),
-      };
-    });
-  }, []);
-
-  // ---- Sessions ------------------------------------------------------
-  const completeSession = useCallback((sessionId: string, feedback: string, description: string) => {
-    setDb((prev) => ({
-      ...prev,
-      sessions: prev.sessions.map((s) =>
-        s.id === sessionId ? { ...s, feedback, description, status: SessionStatus.Completed } : s,
-      ),
-    }));
-  }, []);
-
-  const setSessionStatus = useCallback((sessionId: string, status: SessionStatus) => {
-    setDb((prev) => ({
-      ...prev,
-      sessions: prev.sessions.map((s) => (s.id === sessionId ? { ...s, status } : s)),
-    }));
-  }, []);
-
-  // ---- Psychologist --------------------------------------------------
-  const setWorkingHours = useCallback(
-    (psychologistId: string, hours: Psychologist["workingHours"]) => {
-      setDb((prev) => ({
-        ...prev,
-        psychologists: prev.psychologists.map((p) =>
-          p.id === psychologistId ? { ...p, workingHours: hours } : p,
-        ),
-      }));
-    },
-    [],
-  );
-
-  const updateProfile = useCallback(
-    (input: ProfileInput) => {
-      const name = input.name.trim();
-      setDb((prev) => ({
-        ...prev,
-        users: prev.users.map((u) => (u.id === currentUserId ? { ...u, name } : u)),
-        psychologists: prev.psychologists.map((p) =>
-          p.userId === currentUserId
-            ? {
-                ...p,
-                name,
-                phone: input.phone?.trim() || undefined,
-                approach: input.approach,
-                licenseNumber: input.licenseNumber.trim(),
-              }
-            : p,
-        ),
-      }));
-    },
-    [currentUserId],
-  );
 
   const toggleTheme = useCallback(() => setTheme((t) => (t === "light" ? "dark" : "light")), []);
 
-  const resetData = useCallback(() => {
-    const seed = buildSeed();
-    setDb(seed);
-    setCurrentUserId(null);
-  }, []);
-
-  const value: AppStoreValue = {
-    db,
-    currentUser,
-    activePsychologist,
-    theme,
-    toasts,
-    login,
-    register,
-    logout,
-    addPatient,
-    updatePatient,
-    deletePatient,
-    createSchedule,
-    setScheduleStatus,
-    moveSchedule,
-    deleteSchedule,
-    completeSession,
-    setSessionStatus,
-    setWorkingHours,
-    updateProfile,
-    notify,
-    dismissToast,
-    toggleTheme,
-    resetData,
-  };
+  const value = useMemo<AppStoreValue>(
+    () => ({
+      me,
+      booting,
+      psychologist,
+      settings,
+      isManagement: !!me && (me.roles.includes("Admin") || me.roles.includes("Manager")),
+      isPsychologist: !!me?.psychologistId,
+      theme,
+      toasts,
+      login,
+      register,
+      changePassword,
+      logout,
+      refreshProfile,
+      refreshSettings,
+      notify,
+      dismissToast,
+      toggleTheme,
+    }),
+    [me, booting, psychologist, settings, theme, toasts, login, register, changePassword, logout, refreshProfile, refreshSettings, notify, dismissToast, toggleTheme],
+  );
 
   return <AppStoreContext.Provider value={value}>{children}</AppStoreContext.Provider>;
 }

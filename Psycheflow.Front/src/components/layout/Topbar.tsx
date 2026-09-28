@@ -11,8 +11,8 @@ function greeting(): string {
 }
 
 export function Topbar({ onMenu }: { onMenu: () => void }) {
-  const { currentUser } = useStore();
-  const firstName = currentUser?.name.split(" ")[0] ?? "";
+  const { me } = useStore();
+  const firstName = me?.fullName.split(" ")[0] ?? "";
   return (
     <header className="topbar">
       <button className="icon-btn-light menu-toggle" onClick={onMenu} aria-label="Abrir menu" style={{ background: "var(--surface-2)", color: "var(--text-muted)" }}>

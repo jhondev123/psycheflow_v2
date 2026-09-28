@@ -1,4 +1,5 @@
-import { type Database, type Schedule, ScheduleStatus, ScheduleType } from "@/types";
+import type { AgendaItem, ScheduleStatus } from "@/types";
+import { hm } from "@/lib/format";
 import { toMinutes } from "@/lib/time";
 
 export const DAY_START_HOUR = 7;
@@ -6,7 +7,7 @@ export const DAY_END_HOUR = 21;
 export const HOUR_PX = 56;
 export const GRID_HEIGHT = (DAY_END_HOUR - DAY_START_HOUR) * HOUR_PX;
 
-/** Pixel offset from the top of the grid for a given "HH:mm". */
+/** Distância do topo da grade para um horário "HH:mm". */
 export function yForTime(hhmm: string): number {
   return ((toMinutes(hhmm) - DAY_START_HOUR * 60) / 60) * HOUR_PX;
 }
@@ -20,63 +21,58 @@ export interface EventColors {
   bg: string;
 }
 
-/** Schedule-status colours for the week/month events (CSS vars). */
-export const statusColors: Record<ScheduleStatus, EventColors> = {
-  [ScheduleStatus.Pending]: { color: "var(--warning)", bg: "var(--warning-bg)" },
-  [ScheduleStatus.Confirmed]: { color: "var(--success)", bg: "var(--success-bg)" },
-  [ScheduleStatus.Cancelled]: { color: "var(--danger)", bg: "var(--danger-bg)" },
+const statusColors: Record<ScheduleStatus, EventColors> = {
+  Pending: { color: "var(--warning)", bg: "var(--warning-bg)" },
+  Confirmed: { color: "var(--success)", bg: "var(--success-bg)" },
+  Cancelled: { color: "var(--danger)", bg: "var(--danger-bg)" },
 };
 
+const sessionDoneColors: EventColors = { color: "var(--info)", bg: "var(--info-bg)" };
+const blockColors: EventColors = { color: "var(--text-soft)", bg: "var(--surface-2)" };
+
 export interface CalEvent {
-  schedule: Schedule;
+  item: AgendaItem;
+  start: string;
+  end: string;
   startMin: number;
   endMin: number;
   title: string;
-  patientName?: string;
   isBlock: boolean;
   isCancelled: boolean;
   colors: EventColors;
-  // layout (filled by packDay)
   lane: number;
   lanes: number;
 }
 
-/** Builds calendar events for one psychologist on one ISO date. */
-export function eventsForDate(db: Database, psychologistId: string, dateISO: string): CalEvent[] {
-  return db.schedules
-    .filter((s) => s.psychologistId === psychologistId && s.date === dateISO)
-    .map((s) => toEvent(db, s))
-    .sort((a, b) => a.startMin - b.startMin || a.endMin - b.endMin);
-}
-
-export function toEvent(db: Database, s: Schedule): CalEvent {
-  const isBlock = s.type === ScheduleType.BLOCK;
-  let title = s.title ?? "Bloqueio";
-  let patientName: string | undefined;
-  if (!isBlock) {
-    const session = db.sessions.find((ss) => ss.id === s.sessionId);
-    const patient = session && db.patients.find((p) => p.id === session.patientId);
-    patientName = patient?.name;
-    title = patient?.name ?? "Sessão";
-  }
+export function toEvent(item: AgendaItem): CalEvent {
+  const isBlock = item.type === "Block";
+  const start = hm(item.startTime);
+  const end = hm(item.endTime);
+  const finished = item.sessionStatus === "Completed" || item.sessionStatus === "NoShow";
   return {
-    schedule: s,
-    startMin: toMinutes(s.start),
-    endMin: toMinutes(s.end),
-    title,
-    patientName,
+    item,
+    start,
+    end,
+    startMin: toMinutes(start),
+    endMin: toMinutes(end),
+    title: isBlock ? item.blockReason || "Bloqueio" : item.patientName ?? "Sessão",
     isBlock,
-    isCancelled: s.status === ScheduleStatus.Cancelled,
-    colors: statusColors[s.status],
+    isCancelled: item.status === "Cancelled",
+    colors: isBlock ? blockColors : finished ? sessionDoneColors : statusColors[item.status],
     lane: 0,
     lanes: 1,
   };
 }
 
-/**
- * Assigns each event a lane and the number of lanes in its overlap cluster,
- * so overlapping events can be laid out side by side.
- */
+/** Eventos de um dia, ordenados por horário. */
+export function eventsForDate(items: AgendaItem[], dateISO: string): CalEvent[] {
+  return items
+    .filter((i) => i.date === dateISO)
+    .map(toEvent)
+    .sort((a, b) => a.startMin - b.startMin || a.endMin - b.endMin);
+}
+
+/** Distribui eventos sobrepostos em colunas lado a lado. */
 export function packDay(events: CalEvent[]): CalEvent[] {
   const sorted = [...events].sort((a, b) => a.startMin - b.startMin || a.endMin - b.endMin);
 
@@ -91,7 +87,6 @@ export function packDay(events: CalEvent[]): CalEvent[] {
 
   sorted.forEach((ev, i) => {
     if (ev.startMin >= clusterMaxEnd) {
-      // close previous cluster
       if (i > clusterStart) flush(clusterStart, i);
       clusterStart = i;
       laneEnds.length = 0;

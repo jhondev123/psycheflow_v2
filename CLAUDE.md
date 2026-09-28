@@ -1,6 +1,6 @@
 # Psycheflow
 
-ERP para clínicas de psicologia (TCC – FAG). Backend **.NET 10 + Minimal APIs (Vertical Slice) + EF Core 10/PostgreSQL** em `Psycheflow.Api/` (ver `Psycheflow.Api/README.md`); frontend React + TS + Vite em `Psycheflow.Front/` (hoje em modo mock, sem chamar a API).
+ERP para clínicas de psicologia (TCC – FAG). Backend **.NET 10 + Minimal APIs (Vertical Slice) + EF Core 10/PostgreSQL** em `Psycheflow.Api/` (ver `Psycheflow.Api/README.md`); frontend React + TS + Vite em `Psycheflow.Front/`, integrado à API por `src/lib/api.ts`.
 
 **Antes de qualquer tarefa, leia `docs/ai/README.md`** e os arquivos que ele indica:
 requisitos (`02`), casos de uso (`03`), regras de negócio (`04`), modelo de dados (`05`), API (`06`), status/backlog (`07`) e decisões de arquitetura (`08`).
