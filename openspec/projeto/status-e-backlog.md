@@ -1,6 +1,9 @@
-# 07 — Status, dívidas técnicas e backlog
+# Status, dívidas técnicas e backlog
 
-Retrato em 27/09/2026, após a fase de IA da API. Legenda em `README.md`.
+Retrato em 27/09/2026, após a fase de IA da API. Status por requisito, caso de uso e regra em
+[`rastreabilidade.md`](rastreabilidade.md) (legenda: ✅ feito · 🟡 parcial · ❌ não iniciado).
+Itens do backlog que mudam comportamento entram no projeto como mudança do OpenSpec (`/opsx:propose`), não por
+edição direta das specs.
 
 ## Resumo
 
@@ -86,7 +89,7 @@ agendamento sem checar se o psicólogo existe/é da empresa.
 | D-02 | Quem vê o quê numa clínica com vários psicólogos? | ✅ Pacientes: toda a empresa. Agenda/sessões: o próprio psicólogo; Admin/Manager veem todas, **sem** anotações/feedback. |
 | D-03 | Formato do CRP? | ✅ `^\d{2}/\d{4,6}$` (ex.: `06/12345`). |
 | D-04 | "Cancelada" vira valor de `SessionStatus`? | ✅ `Scheduled, Completed, Cancelled, NoShow`, setado junto com o Schedule. |
-| D-10 | Estrutura da API | ✅ Vertical Slice + Minimal APIs + .NET 10 + TDD (`08`). |
+| D-10 | Estrutura da API | ✅ Vertical Slice + Minimal APIs + .NET 10 + TDD ([decisões](decisoes-de-arquitetura.md)). |
 | D-05 | Recorrência gera sessões até quando? | ✅ Janelas de 3 meses + "estender"; datas indisponíveis são puladas e informadas. |
 | D-06 | Onde guardar anexos do prontuário? | ✅ Disco/volume (`Storage:Path`) atrás da abstração `IFileStorage` (trocável por S3 no deploy). |
 | D-07 | Qual provedor de IA? | ✅ Claude, OpenAI e Gemini (SDKs oficiais) atrás de `IAiTextGenerator`; chaves no servidor; a clínica habilita, escolhe provedor e dados liberados; dados pseudonimizados; usos: anotações da sessão, análise do paciente e próximos passos. |
@@ -97,7 +100,10 @@ agendamento sem checar se o psicólogo existe/é da empresa.
 ## Backlog priorizado
 
 > Fases 0–5 (reestruturação + core) e as fases de Financeiro/Recorrência, Documentos, Prontuários e IA estão concluídas na API —
-> ver o progresso em `08-plano-reestruturacao.md`.
+> ver o progresso em [`decisoes-de-arquitetura.md`](decisoes-de-arquitetura.md).
+
+### Documentação
+- [x] Migração para SDD com OpenSpec: `docs/` → `openspec/` (specs por capacidade, `.docx` convertidos em `projeto/fontes/`)
 
 ### Painel e endurecimento da API
 - [x] `GET /dashboard` (RC-06): contadores do dia/semana, agenda de hoje, próximos atendimentos e financeiro

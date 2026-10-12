@@ -1,4 +1,7 @@
-# 06 — API (contratos)
+# API (contratos)
+
+> Contratos técnicos dos endpoints. O comportamento esperado de cada um (regras e cenários) está nas specs em
+> [`openspec/specs/`](../specs/).
 
 Base: `Psycheflow.Api` · prefixo **`/api/v1`** · documentação interativa em **`/scalar`** (Development) e OpenAPI em `/openapi/v1.json`.
 Auth: `Authorization: Bearer <jwt>` (de `POST /auth/login` ou `/auth/register`, validade 2h). Todas as rotas exigem

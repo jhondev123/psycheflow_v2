@@ -1,7 +1,9 @@
-# 05 — Modelo de dados
+# Modelo de dados
 
 Banco: **PostgreSQL 17** via EF Core 10 (`Common/Persistence/AppDbContext.cs`), nomes em **snake_case**.
-Migration única: `InitialCreate` (o histórico antigo de 2025 foi descartado na reestruturação — `08`).
+Migration única: `InitialCreate` (o histórico antigo de 2025 foi descartado na reestruturação — [decisões](decisoes-de-arquitetura.md)).
+O diagrama [`der-psycheflow.png`](der-psycheflow.png) e o documento [`fontes/modelo-de-dados.md`](fontes/modelo-de-dados.md)
+são do modelo anterior à reestruturação; o diagrama Mermaid no fim desta página é o atual.
 Configuração de cada tabela: `Features/<Módulo>/<Entidade>Configuration.cs`.
 
 ## Convenções

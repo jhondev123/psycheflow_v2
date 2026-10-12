@@ -10,7 +10,8 @@ Stack: React 18 + TypeScript strict + Vite + react-router-dom 6 + date-fns (pt-B
 
 ## Antes de mexer
 1. Leia a página mais parecida em `src/pages/` e copie a estrutura (PageHeader → filtros → card/lista → modal → toasts).
-2. Confira em `docs/ai/02-requisitos.md` os campos/filtros do RF e em `docs/ai/06-api.md` o contrato do endpoint.
+2. Confira na spec da capacidade (`openspec/specs/<capacidade>/spec.md`, e `interface-web` para o comportamento comum das telas)
+   os campos, filtros e cenários, e em `openspec/projeto/api.md` o contrato do endpoint.
 
 ## Dados e API
 - **Toda chamada passa por `src/lib/api.ts`**: `api.get/post/put/del`, `api.upload` (multipart) e `api.download` (PDF/anexo com o
@@ -39,4 +40,4 @@ Stack: React 18 + TypeScript strict + Vite + react-router-dom 6 + date-fns (pt-B
 - `npm run typecheck` e `npm run build` (sem Node na máquina: `docker run --rm -v "$PWD:/src:ro" node:22-alpine ...` copiando o código
   para dentro do container, ou `docker compose up -d --build web` na pasta da API).
 - Teste o fluxo principal no navegador contra a API do compose (login demo `ana@psycheflow.dev` / `Psycheflow@123`).
-- Atualize os status em `docs/ai/`.
+- Atualize os status em `openspec/projeto/rastreabilidade.md` e `status-e-backlog.md`.

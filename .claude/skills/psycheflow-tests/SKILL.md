@@ -8,7 +8,8 @@ description: Escreve testes unitários e de integração da API Psycheflow (xUni
 Projetos: `Psycheflow.Api/tests/Psycheflow.Api.UnitTests` e `Psycheflow.Api/tests/Psycheflow.Api.IntegrationTests`.
 
 ## Princípios
-- **Testes antes do código** (TDD). Cobrir as regras `RN-xx` de `docs/ai/04-regras-de-negocio.md`, não o framework.
+- **Testes antes do código** (TDD). Cada `#### Scenario` da spec (`openspec/specs/<capacidade>/spec.md`) vira ao menos um teste;
+  cubra as regras `RN-xx` citadas na linha `**Origem**` dos requisitos, não o framework.
 - Um teste = um comportamento. Nome `Metodo_Cenario_ResultadoEsperado` (ex.: `Create_SlotAlreadyTaken_Returns409`). Arrange / Act / Assert.
 - Asserções com **Shouldly**; dados com **Bogus** quando o valor não importa.
 - Se um teste falhar por bug no código, não "conserte" o teste: diga qual RN está violada e corrija o código.

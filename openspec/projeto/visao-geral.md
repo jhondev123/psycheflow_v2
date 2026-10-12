@@ -1,4 +1,4 @@
-# 01 — Visão geral, arquitetura e convenções
+# Visão geral, arquitetura e convenções
 
 ## Produto
 
@@ -14,11 +14,14 @@
 ```
 psycheflow/                      # monorepo github.com/jhondev123/psycheflow_v2
 ├─ README.md                     # contexto do projeto
-├─ CLAUDE.md                     # ponteiro para esta pasta
+├─ CLAUDE.md                     # instruções para o Claude Code (ponteiro para openspec/)
 ├─ .github/workflows/api-ci.yml  # CI da API
-├─ docs/
-│  ├─ *.docx, DER_psycheflow.png # documentos originais
-│  └─ ai/                        # esta documentação
+├─ .claude/                      # skills do projeto (psycheflow-*) e do OpenSpec (openspec-*, comandos /opsx)
+├─ openspec/                     # especificação (SDD) — ver openspec/README.md
+│  ├─ config.yaml                # contexto e regras para os artefatos do OpenSpec
+│  ├─ specs/<capacidade>/        # requisitos + cenários vigentes
+│  ├─ changes/                   # mudanças propostas e arquivadas
+│  └─ projeto/                   # esta documentação de apoio (+ fontes/ com os .docx convertidos)
 ├─ Psycheflow.Api/               # backend — ver README.md dele (histórico importado de jhondev123/Psycheflow.Api)
 │  ├─ Psycheflow.slnx, global.json, Directory.Build.props, Directory.Packages.props, .editorconfig
 │  ├─ docker-compose.yml, Dockerfile, .env.example
@@ -165,4 +168,9 @@ Projeto de TCC com padrão de mercado: arquitetura clara, testada e fácil de ma
 | Bloqueio | `Schedule` com `ScheduleType.Block` | Reserva de horário que impede agendamentos |
 | Anotações | `Session.Notes` | Markdown; sigilosas (só o psicólogo da sessão vê) |
 | Feedback | `Session.FeedbackScore` (+ `FeedbackComment`) | Nota 0–10 dada na conclusão |
-| Pagamento, Recorrência, Recibo, Laudo, Prontuário | (ainda não existem) | Fases seguintes — ver `07-status-e-backlog.md` |
+| Pagamento | `Payment` | Um por sessão: nasce Pendente, é lançado (Pago) após a conclusão ou cancelado/estornado |
+| Recorrência | `Recurrence` | Série semanal/mensal que gera sessões em janelas de 3 meses |
+| Recibo, declaração, relatórios | `Features/Documents` | PDFs gerados com QuestPDF |
+| Laudo / relatório psicológico | `PsychologicalReport` | Documento CFP 06/2019: rascunho → finalizado |
+| Prontuário | `MedicalRecord` (+ anexos e trilha de acesso) | Registros do paciente acessíveis só ao psicólogo autor |
+| Configuração de IA | `AiSettings` | Habilitação, provedor e dados liberados pela clínica |

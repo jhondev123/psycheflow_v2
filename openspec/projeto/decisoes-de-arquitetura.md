@@ -1,6 +1,10 @@
-# 08 — Plano de reestruturação da API (Clean + Vertical Slice)
+# Decisões de arquitetura e plano de reestruturação da API (Clean + Vertical Slice)
 
-> Status: **Fases 0–5 concluídas** em 27/09/2026, seguidas pelas fases 6–9 (Financeiro/Recorrência, Documentos, Prontuários e IA). O trabalho foi feito na branch `refactor/vertical-slices` do repo `Psycheflow.Api` e depois importado, com histórico, para o monorepo `jhondev123/psycheflow_v2` (pasta `Psycheflow.Api/`). Próximas fases no backlog de `07-status-e-backlog.md`.
+> Status: **Fases 0–5 concluídas** em 27/09/2026, seguidas pelas fases 6–9 (Financeiro/Recorrência, Documentos, Prontuários e IA). O trabalho foi feito na branch `refactor/vertical-slices` do repo `Psycheflow.Api` e depois importado, com histórico, para o monorepo `jhondev123/psycheflow_v2` (pasta `Psycheflow.Api/`). Próximas fases no backlog de [`status-e-backlog.md`](status-e-backlog.md).
+>
+> Referências a `docs/ai/0x-*.md` neste histórico apontam para a estrutura anterior à migração para o OpenSpec (12/10/2026):
+> `01` → `visao-geral.md` · `02`, `03`, `04` → `openspec/specs/` + `rastreabilidade.md` · `05` → `modelo-de-dados.md` ·
+> `06` → `api.md` · `07` → `status-e-backlog.md` · `08` → este arquivo.
 
 ## Progresso
 
@@ -64,7 +68,7 @@
 | A-35 | Endurecimento | Limite de requisições com o middleware nativo (`AddRateLimiter`, janela fixa configurável, 429 em ProblemDetails); trilha de acesso aos prontuários gravada pelo `MedicalRecordAccess` (leitura, download e negação); painel calculado no banco com consultas agregadas (sem cache). |
 | A-36 | Front | Cliente HTTP único (`lib/api.ts`) sem biblioteca extra: `fetch` + JWT no `localStorage`, ProblemDetails → `ApiError` com erros por campo; carregamento com um hook simples (`useAsync`) em vez de React Query/Redux (KISS); regras só na API, front valida formato; componentes compartilhados para os fluxos que aparecem em várias telas (modal de sessão, formulário de paciente, pagamento, sugestão de IA). Front também no compose (build Node → Nginx). |
 
-Decisões D-05 a D-09 confirmadas com o dev em 27/09/2026 (ver `07`). Notificações ficaram para depois (D-11).
+Decisões D-05 a D-09 confirmadas com o dev em 27/09/2026 (ver [`status-e-backlog.md`](status-e-backlog.md)). Notificações ficaram para depois (D-11).
 
 ## 2. Estrutura alvo
 
@@ -133,7 +137,7 @@ Regras de organização:
 3. Rodar → **vermelho** (compila com stubs mínimos).
 4. Implementar o mínimo até **verde**.
 5. Refatorar; `dotnet format` + build sem warnings.
-6. Atualizar `02`/`04`/`06`/`07` quando o requisito/regra mudar de status.
+6. Atualizar as specs (via mudança do OpenSpec), `api.md`, `rastreabilidade.md` e `status-e-backlog.md` quando o requisito/regra mudar.
 
 **Definition of done do módulo:** todos os slices com testes unit + integração verdes no CI, cobertura ≥ 80%, teste "empresa A não enxerga dados da empresa B" para cada recurso, OpenAPI com exemplos, docs atualizados.
 

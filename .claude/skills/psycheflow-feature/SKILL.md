@@ -6,10 +6,11 @@ description: Implementa uma funcionalidade no Psycheflow (API .NET 10 em Vertica
 # Implementar feature no Psycheflow
 
 ## 1. Entender antes de codar
-1. Leia `docs/ai/README.md` e localize o item (RF-xxx, UC-xx, RN-xx, DT-xx, RC-xx).
-2. Leia o trecho em `02-requisitos.md`, `03-casos-de-uso.md` e as regras em `04-regras-de-negocio.md`.
-3. Se depender de uma decisão `D-xx` ainda aberta em `07-status-e-backlog.md`, **pare e pergunte** ao dev.
-4. Plano curto: testes → domínio/migration → slice → front → docs.
+1. Leia `openspec/README.md` e localize o item (RF-xxx, UC-xx, RN-xx, DT-xx, RC-xx) em `openspec/projeto/rastreabilidade.md`, que aponta a capacidade.
+2. Leia a spec da capacidade (`openspec/specs/<capacidade>/spec.md`): requisitos e cenários são o contrato de comportamento.
+3. Se depender de uma decisão `D-xx` ainda aberta em `openspec/projeto/status-e-backlog.md`, **pare e pergunte** ao dev.
+4. Mudança de comportamento? Ela deve existir como mudança do OpenSpec (`openspec/changes/<nome>/`, criada com `/opsx:propose`); implemente seguindo o `tasks.md` dela.
+5. Plano curto: testes (a partir dos cenários) → domínio/migration → slice → front → docs.
 
 ## 2. API (`Psycheflow.Api/src/Psycheflow.Api`)
 - **TDD obrigatório:** escreva primeiro o teste de integração (`tests/Psycheflow.Api.IntegrationTests/Features/<Módulo>/`) e os unitários de domínio/validator. Veja a skill `psycheflow-tests`.
@@ -30,6 +31,6 @@ description: Implementa uma funcionalidade no Psycheflow (API .NET 10 em Vertica
 - Rode `npm run typecheck` e `npm run build`.
 
 ## 4. Fechar
-1. Atualize os status (✅/🟡/❌) em `02`, `03`, `04` e o backlog em `07`; endpoint novo em `06-api.md`; tabela nova em `05-modelo-de-dados.md`; decisão de arquitetura em `08`.
+1. Em `openspec/projeto/`: status (✅/🟡/❌) em `rastreabilidade.md` e backlog em `status-e-backlog.md`; endpoint novo em `api.md`; tabela nova em `modelo-de-dados.md`; decisão de arquitetura em `decisoes-de-arquitetura.md`. Marque as tarefas do `tasks.md` e arquive a mudança com `/opsx:archive` (aplica o delta em `openspec/specs/`); rode `openspec validate --all --strict`.
 2. Commit com mensagem em pt-BR no padrão `feat(api): …` / `feat(front): …`.
 3. Resuma ao dev: o que foi feito, como testar (request do `.http` ou passo na tela) e o que ficou pendente.

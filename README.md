@@ -12,8 +12,7 @@ Autores: Jhonattan Curtarelli, Matheus Augusto e Matheus Mantovani.
 |-------|----------|
 | [`Psycheflow.Api/`](Psycheflow.Api/) | API em **.NET 10** (Minimal APIs, Vertical Slice, EF Core 10 + PostgreSQL 17), com testes unitários e de integração. Detalhes no [README da API](Psycheflow.Api/README.md). |
 | [`Psycheflow.Front/`](Psycheflow.Front/) | Front-end em **React 18 + TypeScript + Vite**, integrado à API (também sobe pelo Docker Compose da API). |
-| [`docs/`](docs/) | Documentos originais do TCC (requisitos, casos de uso, modelo de dados, DER). |
-| [`docs/ai/`](docs/ai/) | Documentação viva do projeto: requisitos com status, casos de uso, regras de negócio, modelo de dados, contratos da API, backlog e decisões de arquitetura. **Comece por [`docs/ai/README.md`](docs/ai/README.md).** |
+| [`openspec/`](openspec/) | Especificação do sistema no padrão **SDD (Spec-Driven Development)** com [OpenSpec](https://github.com/Fission-AI/OpenSpec): specs por capacidade com requisitos e cenários ([`openspec/specs/`](openspec/specs/)), mudanças propostas ([`openspec/changes/`](openspec/changes/)) e documentação de apoio — arquitetura, modelo de dados, API, decisões, rastreabilidade, backlog e os documentos originais do TCC convertidos para Markdown ([`openspec/projeto/`](openspec/projeto/)). **Comece por [`openspec/README.md`](openspec/README.md).** |
 
 > `psycheflow_v2` reúne API, front e documentação num único repositório. O histórico de commits da API foi preservado
 > (vindo de [`jhondev123/Psycheflow.Api`](https://github.com/jhondev123/Psycheflow.Api)).
@@ -26,7 +25,13 @@ e **consultas** (que só leem) são separados, seguindo o princípio CQS. As reg
 inspiradas na Clean Architecture, e os endpoints usam **Minimal APIs**.
 
 Não é CQRS completo: leitura e escrita usam o mesmo banco e o mesmo modelo, o que basta para o porte do sistema.
-As decisões e seus motivos estão em [`docs/ai/08-plano-reestruturacao.md`](docs/ai/08-plano-reestruturacao.md).
+As decisões e seus motivos estão em [`openspec/projeto/decisoes-de-arquitetura.md`](openspec/projeto/decisoes-de-arquitetura.md).
+
+## Como evoluímos o sistema (SDD)
+
+Toda mudança de comportamento começa pela especificação: `/opsx:propose` cria a proposta com o delta das specs, design e
+tarefas; `/opsx:apply` implementa com TDD; `/opsx:archive` incorpora o delta às specs vigentes. Detalhes em
+[`openspec/README.md`](openspec/README.md).
 
 ## Situação atual
 
@@ -37,11 +42,12 @@ As decisões e seus motivos estão em [`docs/ai/08-plano-reestruturacao.md`](doc
 - **Front:** integrado à API — painel, agenda, pacientes (com ficha), sessões, financeiro, prontuários, documentos,
   configurações (perfil, horários, clínica, usuários) e assistente de IA.
 - **Próximos passos:** notificações (adiadas) e deploy.
-  Veja o backlog em [`docs/ai/07-status-e-backlog.md`](docs/ai/07-status-e-backlog.md).
+  Veja o backlog em [`openspec/projeto/status-e-backlog.md`](openspec/projeto/status-e-backlog.md).
 
 ## Requisitos
 
-Status completo, com regras e casos de uso, em [`docs/ai/02-requisitos.md`](docs/ai/02-requisitos.md).
+Requisitos e cenários de cada área em [`openspec/specs/`](openspec/specs/); status completo, com casos de uso e regras,
+em [`openspec/projeto/rastreabilidade.md`](openspec/projeto/rastreabilidade.md).
 
 ### Feitos (API + front)
 
