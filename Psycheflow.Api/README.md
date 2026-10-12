@@ -47,7 +47,8 @@ dotnet run --project src/Psycheflow.Api    # nesta pasta
 - API: http://localhost:5240 · Scalar: http://localhost:5240/scalar
 - Para o front em modo dev apontar para ela: `VITE_API_URL=http://localhost:5240` em `Psycheflow.Front/.env.local`.
 - `appsettings.Development.json` já aponta para o banco do compose (credenciais **somente de desenvolvimento**).
-- `src/Psycheflow.Api/Psycheflow.Api.http` tem requisições de exemplo prontas.
+- `src/Psycheflow.Api/Psycheflow.Api.http` tem requisições de exemplo prontas; a collection do Postman com todas as
+  rotas fica em [`postman/`](#endpoints).
 
 ### Logins de demonstração
 
@@ -183,6 +184,12 @@ dotnet ef database update --project src/Psycheflow.Api
 
 Todos sob `/api/v1`, autenticados por `Authorization: Bearer <token>` (exceto registro e login).
 Documentação completa e interativa em `/scalar` (ambiente Development).
+
+**Postman:** importe [`postman/Psycheflow.postman_collection.json`](postman/Psycheflow.postman_collection.json)
+(*Import* → arquivo). Tem uma pasta por módulo, faz login sozinha com a Ana da demo (variáveis `email`/`password`),
+guarda os ids criados em variáveis da collection e calcula as datas dos exemplos a partir de hoje. A API do
+`./dev.sh` é a padrão (`baseUrl` = `http://localhost:8080`); com `dotnet run`, troque para `http://localhost:5240`.
+As instruções completas ficam na descrição da collection.
 
 | Módulo | Rotas |
 |--------|-------|

@@ -108,6 +108,8 @@ agendamento sem checar se o psicólogo existe/é da empresa.
 ### Ambiente de desenvolvimento
 - [x] `docker-compose.yml` e `.env.example` na raiz do monorepo + script `dev.sh` (sobe banco, API e front com um comando;
   `watch`, `db`, `logs`, `down`, `reset`)
+- [x] Collection do Postman com todas as rotas, uma pasta por módulo (`Psycheflow.Api/postman/`): login automático,
+  ids encadeados em variáveis e datas calculadas a partir de hoje
 
 ### Painel e endurecimento da API
 - [x] `GET /dashboard` (RC-06): contadores do dia/semana, agenda de hoje, próximos atendimentos e financeiro

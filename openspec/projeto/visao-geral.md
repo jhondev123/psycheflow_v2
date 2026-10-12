@@ -25,7 +25,7 @@ psycheflow/                      # monorepo github.com/jhondev123/psycheflow_v2
 │  └─ projeto/                   # esta documentação de apoio (+ fontes/ com os .docx convertidos)
 ├─ Psycheflow.Api/               # backend — ver README.md dele (histórico importado de jhondev123/Psycheflow.Api)
 │  ├─ Psycheflow.slnx, global.json, Directory.Build.props, Directory.Packages.props, .editorconfig
-│  ├─ Dockerfile
+│  ├─ Dockerfile, postman/ (collection com todas as rotas, uma pasta por módulo)
 │  ├─ src/Psycheflow.Api/        # Common/ + Features/<Módulo>/<CasoDeUso>/
 │  └─ tests/                     # UnitTests + IntegrationTests (Testcontainers)
 └─ Psycheflow.Front/             # frontend React (Dockerfile + nginx.conf para o compose da raiz)

@@ -1,0 +1,2692 @@
+{
+  "info": {
+    "_postman_id": "5d0f3c1e-6b8a-4c43-9b0e-2f1d7a9c4e21",
+    "name": "Psycheflow API",
+    "description": "Requisições de todos os módulos da API do Psycheflow, uma pasta por módulo.\n\n## Como usar\n\n1. Suba a API: `./dev.sh` na raiz do repositório (API em http://localhost:8080). Se estiver rodando com `dotnet run`, troque a variável `baseUrl` para `http://localhost:5240`.\n2. Envie qualquer requisição: a collection faz login sozinha com as variáveis `email` e `password` (padrão: Ana, Admin + Psicóloga da demo) e guarda o token em `token`. Para entrar com outro usuário, troque `email` e rode **Auth › Login**.\n3. As requisições de criação guardam os ids (`patientId`, `sessionId`, `reportId`...) nas variáveis da collection, e as seguintes usam esses ids. Siga a ordem de cada pasta ou rode a collection inteira no Runner.\n\nAs datas dos exemplos (`today`, `sessionDate`, `blockDate`...) são calculadas a partir de hoje a cada envio, em dias algumas semanas à frente, para não bater com a agenda da demo.\n\n## Usuários de demonstração\n\nSenha de todos: `Psycheflow@123`.\n\n| E-mail | Perfis |\n|---|---|\n| `ana@psycheflow.dev` | Admin + Psicóloga |\n| `bruno@psycheflow.dev` | Psicólogo |\n| `gestao@psycheflow.dev` | Manager |\n| `admin@psycheflow.dev` | Admin |\n\nErros vêm como ProblemDetails (RFC 9457); validação devolve 422 com os erros por campo em `errors`. A documentação completa da API fica em `{{baseUrl}}/scalar`.\n",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Datas dos exemplos, calculadas a partir de hoje a cada envio (no fuso do computador).",
+          "const pad = n => String(n).padStart(2, '0');",
+          "const fmt = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;",
+          "const addDays = (d, n) => { const r = new Date(d); r.setDate(r.getDate() + n); return r; };",
+          "const today = new Date();",
+          "// Segunda-feira daqui a 3 a 4 semanas: longe da agenda da demo, que vai de 2 semanas atrás a 2 à frente.",
+          "const base = addDays(today, 21);",
+          "const monday = addDays(base, (8 - base.getDay()) % 7);",
+          "const dates = {",
+          "    today: today, yesterday: addDays(today, -1), inAWeek: addDays(today, 6), monthAgo: addDays(today, -30),",
+          "    inThreeMonths: addDays(today, 90), sessionDate: monday, rescheduleDate: addDays(monday, 1),",
+          "    blockDate: addDays(monday, 7), recurrenceStartDate: addDays(monday, 8)",
+          "};",
+          "Object.entries(dates).forEach(([name, date]) => pm.collectionVariables.set(name, fmt(date)));",
+          "",
+          "// Login automático com as variáveis email/password quando ainda não há token ou ele está para expirar.",
+          "const path = pm.request.url.getPath();",
+          "const isPublic = ['/auth/login', '/auth/register', '/health'].some(p => path.endsWith(p));",
+          "const expiresAt = Date.parse(pm.collectionVariables.get('tokenExpiresAt') || '') || 0;",
+          "if (!isPublic && (!pm.collectionVariables.get('token') || Date.now() > expiresAt - 60000)) {",
+          "    pm.sendRequest({",
+          "        url: pm.variables.get('baseUrl') + '/api/v1/auth/login',",
+          "        method: 'POST',",
+          "        header: { 'Content-Type': 'application/json' },",
+          "        body: { mode: 'raw', raw: JSON.stringify({ email: pm.variables.get('email'), password: pm.variables.get('password') }) }",
+          "    }, (error, response) => {",
+          "        if (error || response.code !== 200) {",
+          "            console.warn('Login automático falhou. Confira baseUrl, email e password.', error || response.code);",
+          "            return;",
+          "        }",
+          "        const body = response.json();",
+          "        pm.collectionVariables.set('token', body.accessToken);",
+          "        pm.collectionVariables.set('tokenExpiresAt', body.expiresAt);",
+          "    });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "email",
+      "value": "ana@psycheflow.dev",
+      "type": "string"
+    },
+    {
+      "key": "password",
+      "value": "Psycheflow@123",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tokenExpiresAt",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "newAccountToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "psychologistId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "patientId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "sessionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "pastSessionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "noShowSessionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "completedSessionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "feedbackPatientId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "blockId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "paymentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "paymentToCancelId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "recurrenceId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "reportId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "draftReportId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "medicalRecordId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "attachmentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "today",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "yesterday",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "inAWeek",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "monthAgo",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "inThreeMonths",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "sessionDate",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "rescheduleDate",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "blockDate",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "recurrenceStartDate",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Saúde",
+      "description": "Verificação de saúde da API, sem login.",
+      "item": [
+        {
+          "name": "Health check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": "Verifica se a API e o banco estão no ar (fica fora de `/api/v1` e não exige login).",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "description": "Login, criação de conta e troca de senha. O **Login** guarda o token na variável `token`; as demais pastas usam esse token (a collection também faz login sozinha quando ele falta ou expira).",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Autentica com e-mail e senha e devolve o token de acesso.\n\nUsa as variáveis `email` e `password`. Para entrar com outro usuário da demo, troque `email` e envie de novo.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const body = pm.response.json();",
+                  "    pm.collectionVariables.set('token', body.accessToken);",
+                  "    pm.collectionVariables.set('tokenExpiresAt', body.expiresAt);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Usuário logado",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "me"
+              ]
+            },
+            "description": "Dados do usuário logado: perfis, empresa e id do perfil de psicólogo."
+          },
+          "response": []
+        },
+        {
+          "name": "Criar conta (nova clínica)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Cria a conta: empresa, usuário responsável (Admin + Psicólogo) e perfil profissional.\n\nCria outra clínica, sem relação com a da demo. O token devolvido fica em `newAccountToken` (usado em **Trocar senha**) e não substitui o seu login. E-mail e CRP mudam a cada envio.\n\n`approach`: NotInformed, CognitiveBehavioral, Psychoanalysis, Behavioral, Humanistic, Gestalt, Systemic ou Other.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"companyName\": \"Clínica Exemplo\",\n  \"fullName\": \"Maria Exemplo\",\n  \"email\": \"clinica{{$timestamp}}@exemplo.com\",\n  \"password\": \"Psycheflow@123\",\n  \"licenseNumber\": \"{{crp}}\",\n  \"approach\": \"CognitiveBehavioral\",\n  \"phone\": \"(45) 99999-0000\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set('crp', '06/' + (100000 + Math.floor(Math.random() * 900000)));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code < 300) {",
+                  "    pm.collectionVariables.set('newAccountToken', pm.response.json().accessToken);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Trocar senha",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/change-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "change-password"
+              ]
+            },
+            "description": "Troca a senha do usuário logado (obrigatório no primeiro acesso com senha temporária).\n\nTroca a senha da conta criada em **Criar conta** (usa o token dela), para não alterar os logins de demonstração. Devolve um token novo.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"Psycheflow@123\",\n  \"newPassword\": \"NovaSenha@123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{newAccountToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Usuários",
+      "description": "Equipe da clínica (Admin/Manager).",
+      "item": [
+        {
+          "name": "Cadastrar usuário",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users"
+              ]
+            },
+            "description": "Cadastra um usuário da empresa com senha temporária (Admin/Manager).\n\n`role`: Admin, Manager ou Psychologist (o CRP só é exigido para Psychologist). A resposta traz a senha temporária, mostrada uma única vez; no primeiro acesso o usuário precisa trocá-la.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Carla Exemplo\",\n  \"email\": \"carla{{$timestamp}}@psycheflow.dev\",\n  \"role\": \"Psychologist\",\n  \"licenseNumber\": \"{{crp}}\",\n  \"approach\": \"Humanistic\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set('crp', '06/' + (100000 + Math.floor(Math.random() * 900000)));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar usuários",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users"
+              ]
+            },
+            "description": "Lista os usuários da empresa (Admin/Manager)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Configurações",
+      "description": "Configurações da clínica.",
+      "item": [
+        {
+          "name": "Ver configurações",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "settings"
+              ]
+            },
+            "description": "Configurações da empresa (duração e valor padrão da sessão, fuso horário)."
+          },
+          "response": []
+        },
+        {
+          "name": "Alterar configurações",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "settings"
+              ]
+            },
+            "description": "Altera as configurações da empresa (Admin/Manager).\n\nO exemplo usa os valores padrão da demo.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionDurationMinutes\": 50,\n  \"sessionDefaultPrice\": 150.0,\n  \"timeZone\": \"America/Sao_Paulo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Psicólogos",
+      "description": "Perfil profissional e expediente. **Meu perfil** guarda o id em `psychologistId`.",
+      "item": [
+        {
+          "name": "Meu perfil",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/psychologists/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "psychologists",
+                "me"
+              ]
+            },
+            "description": "Perfil de psicólogo do usuário logado."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    pm.collectionVariables.set('psychologistId', pm.response.json().id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar psicólogos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/psychologists",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "psychologists"
+              ]
+            },
+            "description": "Lista os psicólogos da empresa com o expediente de cada um."
+          },
+          "response": []
+        },
+        {
+          "name": "Ver psicólogo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/psychologists/{{psychologistId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "psychologists",
+                "{{psychologistId}}"
+              ]
+            },
+            "description": "Perfil de um psicólogo da empresa."
+          },
+          "response": []
+        },
+        {
+          "name": "Atualizar perfil",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/psychologists/{{psychologistId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "psychologists",
+                "{{psychologistId}}"
+              ]
+            },
+            "description": "Atualiza nome, CRP, abordagem e telefone do psicólogo (o próprio ou Admin/Manager).\n\nO exemplo usa os dados da Ana (demo). Logado com outro psicólogo, ajuste o corpo antes de enviar.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Ana Souza\",\n  \"licenseNumber\": \"06/123456\",\n  \"approach\": \"CognitiveBehavioral\",\n  \"phone\": \"(45) 99911-2233\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Ver expediente",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/psychologists/{{psychologistId}}/working-hours",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "psychologists",
+                "{{psychologistId}}",
+                "working-hours"
+              ]
+            },
+            "description": "Expediente semanal do psicólogo, ordenado por dia e horário."
+          },
+          "response": []
+        },
+        {
+          "name": "Alterar expediente",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/psychologists/{{psychologistId}}/working-hours",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "psychologists",
+                "{{psychologistId}}",
+                "working-hours"
+              ]
+            },
+            "description": "Substitui o expediente semanal do psicólogo (o próprio ou Admin/Manager).\n\nSubstitui o expediente inteiro. O exemplo é o padrão da demo: segunda a sexta, 8h–12h e 13h–18h.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hours\": [\n    {\n      \"dayOfWeek\": \"Monday\",\n      \"startTime\": \"08:00\",\n      \"endTime\": \"12:00\"\n    },\n    {\n      \"dayOfWeek\": \"Monday\",\n      \"startTime\": \"13:00\",\n      \"endTime\": \"18:00\"\n    },\n    {\n      \"dayOfWeek\": \"Tuesday\",\n      \"startTime\": \"08:00\",\n      \"endTime\": \"12:00\"\n    },\n    {\n      \"dayOfWeek\": \"Tuesday\",\n      \"startTime\": \"13:00\",\n      \"endTime\": \"18:00\"\n    },\n    {\n      \"dayOfWeek\": \"Wednesday\",\n      \"startTime\": \"08:00\",\n      \"endTime\": \"12:00\"\n    },\n    {\n      \"dayOfWeek\": \"Wednesday\",\n      \"startTime\": \"13:00\",\n      \"endTime\": \"18:00\"\n    },\n    {\n      \"dayOfWeek\": \"Thursday\",\n      \"startTime\": \"08:00\",\n      \"endTime\": \"12:00\"\n    },\n    {\n      \"dayOfWeek\": \"Thursday\",\n      \"startTime\": \"13:00\",\n      \"endTime\": \"18:00\"\n    },\n    {\n      \"dayOfWeek\": \"Friday\",\n      \"startTime\": \"08:00\",\n      \"endTime\": \"12:00\"\n    },\n    {\n      \"dayOfWeek\": \"Friday\",\n      \"startTime\": \"13:00\",\n      \"endTime\": \"18:00\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Pacientes",
+      "description": "Cadastro de pacientes. **Cadastrar paciente** guarda o id em `patientId`.",
+      "item": [
+        {
+          "name": "Cadastrar paciente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/patients",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "patients"
+              ]
+            },
+            "description": "Cadastra um paciente (nome, CPF, e-mail e telefone obrigatórios).\n\nO CPF (válido) e o e-mail mudam a cada envio.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Paciente Exemplo\",\n  \"cpf\": \"{{cpf}}\",\n  \"email\": \"paciente{{$timestamp}}@email.com\",\n  \"phone\": \"(45) 99999-0000\",\n  \"birthDate\": \"1995-04-10\",\n  \"address\": {\n    \"zipCode\": \"85810-000\",\n    \"street\": \"Rua Paraná\",\n    \"number\": \"100\",\n    \"complement\": null,\n    \"neighborhood\": \"Centro\",\n    \"city\": \"Cascavel\",\n    \"state\": \"PR\"\n  },\n  \"notes\": \"Encaminhado pela UBS do bairro.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// CPF válido aleatório (o CPF é único por clínica).",
+                  "const digits = Array.from({ length: 9 }, () => Math.floor(Math.random() * 10));",
+                  "for (const length of [9, 10]) {",
+                  "    let sum = 0;",
+                  "    for (let i = 0; i < length; i++) sum += digits[i] * (length + 1 - i);",
+                  "    digits.push((sum * 10) % 11 % 10);",
+                  "}",
+                  "const cpf = digits.join('');",
+                  "pm.variables.set('cpf', `${cpf.slice(0, 3)}.${cpf.slice(3, 6)}.${cpf.slice(6, 9)}-${cpf.slice(9)}`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    pm.collectionVariables.set('patientId', pm.response.json().id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar pacientes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/patients?search=Paciente&page=1&pageSize=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "patients"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "Paciente"
+                },
+                {
+                  "key": "status",
+                  "value": "Active",
+                  "disabled": true
+                },
+                {
+                  "key": "lastSessionFrom",
+                  "value": "{{monthAgo}}",
+                  "disabled": true
+                },
+                {
+                  "key": "lastSessionTo",
+                  "value": "{{today}}",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Lista paginada de pacientes com busca (nome, e-mail ou CPF) e filtros.\n\n`search` procura por nome, e-mail ou CPF. `status`: Active ou Inactive."
+          },
+          "response": []
+        },
+        {
+          "name": "Ver paciente",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/patients/{{patientId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "patients",
+                "{{patientId}}"
+              ]
+            },
+            "description": "Dados completos de um paciente da empresa."
+          },
+          "response": []
+        },
+        {
+          "name": "Atualizar paciente",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/patients/{{patientId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "patients",
+                "{{patientId}}"
+              ]
+            },
+            "description": "Atualiza dados, endereço e status do paciente (o CPF não é editável).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Paciente Exemplo da Silva\",\n  \"email\": \"paciente.atualizado{{$timestamp}}@email.com\",\n  \"phone\": \"(45) 98888-0000\",\n  \"status\": \"Active\",\n  \"birthDate\": \"1995-04-10\",\n  \"address\": {\n    \"zipCode\": \"85810-000\",\n    \"street\": \"Rua Paraná\",\n    \"number\": \"100\",\n    \"complement\": \"Apto 12\",\n    \"neighborhood\": \"Centro\",\n    \"city\": \"Cascavel\",\n    \"state\": \"PR\"\n  },\n  \"notes\": \"Prefere atendimento à tarde.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Agenda",
+      "description": "Agenda do período e bloqueios. As datas dos exemplos são calculadas a partir de hoje.",
+      "item": [
+        {
+          "name": "Ver agenda",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/agenda?from={{today}}&to={{inAWeek}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "agenda"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "{{today}}"
+                },
+                {
+                  "key": "to",
+                  "value": "{{inAWeek}}"
+                },
+                {
+                  "key": "psychologistId",
+                  "value": "{{psychologistId}}",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Agenda do período: sessões, bloqueios e expediente (até 62 dias).\n\nPeríodo de até 62 dias. Sem `psychologistId`, mostra a agenda do psicólogo logado."
+          },
+          "response": []
+        },
+        {
+          "name": "Bloquear agenda",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/schedule-blocks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "schedule-blocks"
+              ]
+            },
+            "description": "Bloqueia dias inteiros ou uma faixa de horário na agenda (um bloqueio por dia).\n\nSem horário bloqueia o dia inteiro; com `startTime` e `endTime` (ex.: \"12:00\" e \"13:30\") bloqueia só a faixa. Gera um bloqueio por dia; o primeiro fica em `blockId`. `psychologistId` é opcional (Admin/Manager bloqueando a agenda de outro psicólogo).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"startDate\": \"{{blockDate}}\",\n  \"endDate\": \"{{blockDate}}\",\n  \"reason\": \"Congresso de psicologia\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    pm.collectionVariables.set('blockId', pm.response.json()[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Remover bloqueio",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/schedule-blocks/{{blockId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "schedule-blocks",
+                "{{blockId}}"
+              ]
+            },
+            "description": "Remove um bloqueio de agenda, liberando o horário."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Sessões",
+      "description": "Ciclo de vida da sessão. **Agendar sessão** guarda o id em `sessionId`; concluir e marcar falta usam sessões que já passaram (ver **Listar sessões passadas em aberto**).",
+      "item": [
+        {
+          "name": "Agendar sessão",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sessions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sessions"
+              ]
+            },
+            "description": "Agenda uma sessão dentro do expediente do psicólogo, sem conflito de horário.\n\n`durationMinutes` e `price` são opcionais (padrão das configurações). `psychologistId` é opcional (Admin/Manager agendando para outro psicólogo). `sessionDate` é uma segunda-feira daqui a algumas semanas, para não bater com a agenda da demo.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patientId\": \"{{patientId}}\",\n  \"date\": \"{{sessionDate}}\",\n  \"startTime\": \"14:00\",\n  \"durationMinutes\": 50,\n  \"price\": 150.0,\n  \"notes\": \"Primeira sessão.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    pm.collectionVariables.set('sessionId', pm.response.json().id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar sessões",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sessions?from={{today}}&to={{inThreeMonths}}&page=1&pageSize=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sessions"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "{{today}}"
+                },
+                {
+                  "key": "to",
+                  "value": "{{inThreeMonths}}"
+                },
+                {
+                  "key": "timeFrom",
+                  "value": "08:00",
+                  "disabled": true
+                },
+                {
+                  "key": "timeTo",
+                  "value": "18:00",
+                  "disabled": true
+                },
+                {
+                  "key": "patientId",
+                  "value": "{{patientId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "psychologistId",
+                  "value": "{{psychologistId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "Scheduled",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Lista paginada de sessões por período, horário, paciente, psicólogo e status.\n\n`status`: Scheduled, Completed, Cancelled ou NoShow."
+          },
+          "response": []
+        },
+        {
+          "name": "Ver sessão",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sessions/{{sessionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sessions",
+                "{{sessionId}}"
+              ]
+            },
+            "description": "Detalhe da sessão. Anotações e feedback só aparecem para o psicólogo da sessão."
+          },
+          "response": []
+        },
+        {
+          "name": "Alterar sessão",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sessions/{{sessionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sessions",
+                "{{sessionId}}"
+              ]
+            },
+            "description": "Altera paciente e anotações de uma sessão agendada.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patientId\": \"{{patientId}}\",\n  \"notes\": \"Paciente pediu para focar na ansiedade no trabalho.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Confirmar sessão",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sessions/{{sessionId}}/confirm",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sessions",
+                "{{sessionId}}",
+                "confirm"
+              ]
+            },
+            "description": "Confirma o horário de uma sessão agendada."
+          },
+          "response": []
+        },
+        {
+          "name": "Reagendar sessão",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sessions/{{sessionId}}/reschedule",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sessions",
+                "{{sessionId}}",
+                "reschedule"
+              ]
+            },
+            "description": "Reagenda a sessão para nova data/horário, com motivo obrigatório.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"date\": \"{{rescheduleDate}}\",\n  \"startTime\": \"15:00\",\n  \"reason\": \"Pedido do paciente.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cancelar sessão",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sessions/{{sessionId}}/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sessions",
+                "{{sessionId}}",
+                "cancel"
+              ]
+            },
+            "description": "Cancela a sessão com motivo obrigatório; o horário fica livre.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Paciente viajou.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Excluir sessão",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sessions/{{sessionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sessions",
+                "{{sessionId}}"
+              ]
+            },
+            "description": "Exclui (logicamente) uma sessão não concluída e libera o horário."
+          },
+          "response": []
+        },
+        {
+          "name": "Listar sessões concluídas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sessions?from={{monthAgo}}&to={{today}}&status=Completed&psychologistId={{psychologistId}}&pageSize=5",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sessions"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "{{monthAgo}}"
+                },
+                {
+                  "key": "to",
+                  "value": "{{today}}"
+                },
+                {
+                  "key": "status",
+                  "value": "Completed"
+                },
+                {
+                  "key": "psychologistId",
+                  "value": "{{psychologistId}}"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "Lista paginada de sessões por período, horário, paciente, psicólogo e status.\n\nGuarda uma sessão concluída do psicólogo logado em `completedSessionId` e o paciente dela em `feedbackPatientId`, usados em **Documentos** e **IA**."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const [first] = pm.response.json().items;",
+                  "    pm.collectionVariables.set('completedSessionId', first ? first.id : '');",
+                  "    pm.collectionVariables.set('feedbackPatientId', first ? first.patientId : '');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar sessões passadas em aberto",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sessions?from={{monthAgo}}&to={{yesterday}}&status=Scheduled&psychologistId={{psychologistId}}&pageSize=2",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sessions"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "{{monthAgo}}"
+                },
+                {
+                  "key": "to",
+                  "value": "{{yesterday}}"
+                },
+                {
+                  "key": "status",
+                  "value": "Scheduled"
+                },
+                {
+                  "key": "psychologistId",
+                  "value": "{{psychologistId}}"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "2"
+                }
+              ]
+            },
+            "description": "Lista paginada de sessões por período, horário, paciente, psicólogo e status.\n\nConcluir e marcar falta só valem depois do horário de início. Esta busca guarda duas sessões que já passaram e seguem em aberto (`pastSessionId` e `noShowSessionId`). Se vier vazia, não há nenhuma: os dados de demonstração já nascem com as sessões passadas concluídas."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const [first, second] = pm.response.json().items;",
+                  "    pm.collectionVariables.set('pastSessionId', first ? first.id : '');",
+                  "    pm.collectionVariables.set('noShowSessionId', second ? second.id : '');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Concluir sessão",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sessions/{{pastSessionId}}/complete",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sessions",
+                "{{pastSessionId}}",
+                "complete"
+              ]
+            },
+            "description": "Conclui a sessão com anotações (Markdown) e feedback de 0 a 10 (psicólogo da sessão).\n\nAnotações em Markdown e feedback de 0 a 10; só o psicólogo da sessão pode concluir. Usa `pastSessionId`: uma sessão que ainda não começou devolve 409.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notes\": \"## Evolução\\n\\nPaciente relatou melhora no sono e menos crises no trabalho.\",\n  \"feedbackScore\": 8,\n  \"feedbackComment\": \"Sessão produtiva.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Marcar falta",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sessions/{{noShowSessionId}}/no-show",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sessions",
+                "{{noShowSessionId}}",
+                "no-show"
+              ]
+            },
+            "description": "Marca falta do paciente (somente após o horário de início).\n\nUsa `noShowSessionId`: uma sessão que ainda não começou devolve 409."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Pagamentos",
+      "description": "Cada sessão nasce com um pagamento pendente. **Listar pagamentos pendentes** guarda os ids usados nesta pasta e no recibo.",
+      "item": [
+        {
+          "name": "Listar pagamentos pendentes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments?to={{today}}&status=Pending&page=1&pageSize=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "payments"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "{{monthAgo}}",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "{{today}}"
+                },
+                {
+                  "key": "patientId",
+                  "value": "{{patientId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "psychologistId",
+                  "value": "{{psychologistId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "Pending"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Lista paginada de pagamentos por período da sessão, paciente, psicólogo e status.\n\nPendentes de sessões até hoje: guarda o primeiro em `paymentId` e o segundo em `paymentToCancelId`. `status`: Pending, Paid ou Cancelled. Cada execução da pasta paga um e cancela outro; se acabarem, `./dev.sh reset` recria os dados de demonstração."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const [first, second] = pm.response.json().items;",
+                  "    pm.collectionVariables.set('paymentId', first ? first.id : '');",
+                  "    pm.collectionVariables.set('paymentToCancelId', second ? second.id : '');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ver pagamento",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments/{{paymentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "payments",
+                "{{paymentId}}"
+              ]
+            },
+            "description": "Detalhe de um pagamento."
+          },
+          "response": []
+        },
+        {
+          "name": "Alterar valor",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments/{{paymentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "payments",
+                "{{paymentId}}"
+              ]
+            },
+            "description": "Altera o valor de um pagamento pendente (pago não pode ser editado).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 160.0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Lançar pagamento",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments/{{paymentId}}/pay",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "payments",
+                "{{paymentId}}",
+                "pay"
+              ]
+            },
+            "description": "Lança o pagamento de uma sessão concluída (método, data e valor).\n\n`method`: CreditCard, DebitCard ou Pix.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"method\": \"Pix\",\n  \"paidAt\": \"{{today}}\",\n  \"amount\": 160.0,\n  \"notes\": \"Pago na recepção.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cancelar pagamento",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments/{{paymentToCancelId}}/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "payments",
+                "{{paymentToCancelId}}",
+                "cancel"
+              ]
+            },
+            "description": "Cancela um pagamento pendente ou estorna um pago (motivo obrigatório).\n\nUsa o segundo pendente da lista, para que o recibo do primeiro (pago acima) continue valendo.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Sessão abonada.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Recorrência",
+      "description": "Séries semanais ou mensais. **Criar recorrência** guarda o id em `recurrenceId`.",
+      "item": [
+        {
+          "name": "Criar recorrência",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/recurrences",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "recurrences"
+              ]
+            },
+            "description": "Cria recorrência semanal ou mensal e agenda as sessões dos próximos 3 meses (datas indisponíveis são puladas).\n\n`type`: Weekly ou Monthly. Agenda as sessões dos próximos 3 meses; com `endDate` (opcional, ex.: \"2027-03-31\"), para nessa data. Datas indisponíveis são puladas e listadas em `skipped`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patientId\": \"{{patientId}}\",\n  \"type\": \"Weekly\",\n  \"startDate\": \"{{recurrenceStartDate}}\",\n  \"startTime\": \"10:00\",\n  \"durationMinutes\": 50,\n  \"price\": 150.0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    pm.collectionVariables.set('recurrenceId', pm.response.json().recurrence.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar recorrências",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/recurrences?patientId={{patientId}}&activeOnly=true",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "recurrences"
+              ],
+              "query": [
+                {
+                  "key": "patientId",
+                  "value": "{{patientId}}"
+                },
+                {
+                  "key": "activeOnly",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Recorrências (por paciente, opcionalmente só as ativas)."
+          },
+          "response": []
+        },
+        {
+          "name": "Estender recorrência",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/recurrences/{{recurrenceId}}/extend",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "recurrences",
+                "{{recurrenceId}}",
+                "extend"
+              ]
+            },
+            "description": "Gera as sessões dos próximos 3 meses de uma recorrência ativa.\n\nCom `endDate` já alcançada, devolve 409."
+          },
+          "response": []
+        },
+        {
+          "name": "Encerrar recorrência",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/recurrences/{{recurrenceId}}/end",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "recurrences",
+                "{{recurrenceId}}",
+                "end"
+              ]
+            },
+            "description": "Encerra a recorrência e cancela as sessões futuras ainda agendadas.\n\nAs sessões futuras ainda agendadas são canceladas, liberando os horários.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Alta do paciente.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Documentos",
+      "description": "Documentos em PDF. No Postman, use **Send and Download** para salvar o arquivo. Usa os ids guardados em **Sessões › Listar sessões concluídas** e **Pagamentos**.",
+      "item": [
+        {
+          "name": "Recibo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/documents/receipts/{{paymentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "documents",
+                "receipts",
+                "{{paymentId}}"
+              ]
+            },
+            "description": "Recibo em PDF de um pagamento recebido.\n\nSó para pagamento recebido (o `paymentId` é pago em **Pagamentos › Lançar pagamento**)."
+          },
+          "response": []
+        },
+        {
+          "name": "Declaração de comparecimento",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/documents/attendance/{{completedSessionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "documents",
+                "attendance",
+                "{{completedSessionId}}"
+              ]
+            },
+            "description": "Declaração de comparecimento em PDF de uma sessão concluída."
+          },
+          "response": []
+        },
+        {
+          "name": "Relatório de sessões",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/documents/sessions-report?from={{monthAgo}}&to={{today}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "documents",
+                "sessions-report"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "{{monthAgo}}"
+                },
+                {
+                  "key": "to",
+                  "value": "{{today}}"
+                },
+                {
+                  "key": "sessionStatus",
+                  "value": "Completed",
+                  "disabled": true
+                },
+                {
+                  "key": "paymentStatus",
+                  "value": "Paid",
+                  "disabled": true
+                },
+                {
+                  "key": "psychologistId",
+                  "value": "{{psychologistId}}",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Relatório de sessões em PDF (período, status da sessão e do pagamento)."
+          },
+          "response": []
+        },
+        {
+          "name": "Relatório de feedback",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/documents/feedback-report?patientId={{feedbackPatientId}}&from={{monthAgo}}&to={{today}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "documents",
+                "feedback-report"
+              ],
+              "query": [
+                {
+                  "key": "patientId",
+                  "value": "{{feedbackPatientId}}"
+                },
+                {
+                  "key": "from",
+                  "value": "{{monthAgo}}"
+                },
+                {
+                  "key": "to",
+                  "value": "{{today}}"
+                }
+              ]
+            },
+            "description": "Relatório em PDF dos feedbacks (0–10) do paciente nas sessões com o psicólogo logado."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Laudos",
+      "description": "Laudos e relatórios psicológicos (CFP 06/2019), só do psicólogo autor. **Criar laudo** guarda o id em `reportId`.",
+      "item": [
+        {
+          "name": "Criar laudo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/psychological-reports",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "psychological-reports"
+              ]
+            },
+            "description": "Cria o rascunho de um laudo ou relatório psicológico (CFP 06/2019).\n\n`template`: PsychologicalReport (laudo) ou PsychologicalStatement (relatório). Nasce como rascunho.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patientId\": \"{{patientId}}\",\n  \"template\": \"PsychologicalReport\",\n  \"purpose\": \"Avaliar o quadro de ansiedade para orientar o encaminhamento.\",\n  \"demand\": \"Paciente procurou atendimento por crises de ansiedade no trabalho.\",\n  \"procedure\": \"Entrevistas clínicas semanais e observação ao longo das sessões.\",\n  \"analysis\": \"Sintomas compatíveis com ansiedade generalizada, com melhora gradual.\",\n  \"conclusion\": \"Recomenda-se manter o acompanhamento psicológico semanal.\",\n  \"includeSessionSummary\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    pm.collectionVariables.set('reportId', pm.response.json().id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar laudos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/psychological-reports?patientId={{patientId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "psychological-reports"
+              ],
+              "query": [
+                {
+                  "key": "patientId",
+                  "value": "{{patientId}}"
+                }
+              ]
+            },
+            "description": "Laudos/relatórios do psicólogo logado (opcionalmente de um paciente)."
+          },
+          "response": []
+        },
+        {
+          "name": "Ver laudo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/psychological-reports/{{reportId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "psychological-reports",
+                "{{reportId}}"
+              ]
+            },
+            "description": "Detalhe do laudo/relatório (somente o autor)."
+          },
+          "response": []
+        },
+        {
+          "name": "Editar laudo",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/psychological-reports/{{reportId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "psychological-reports",
+                "{{reportId}}"
+              ]
+            },
+            "description": "Edita um laudo/relatório em rascunho.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"template\": \"PsychologicalReport\",\n  \"purpose\": \"Avaliar o quadro de ansiedade para orientar o encaminhamento.\",\n  \"demand\": \"Paciente procurou atendimento por crises de ansiedade no trabalho.\",\n  \"procedure\": \"Entrevistas clínicas semanais e observação ao longo das sessões.\",\n  \"analysis\": \"Sintomas compatíveis com ansiedade generalizada, com melhora gradual.\",\n  \"conclusion\": \"Recomenda-se manter o acompanhamento semanal e reavaliar em 6 meses.\",\n  \"includeSessionSummary\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PDF do laudo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/psychological-reports/{{reportId}}/pdf",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "psychological-reports",
+                "{{reportId}}",
+                "pdf"
+              ]
+            },
+            "description": "PDF do laudo/relatório (rascunhos saem com marca d'água)."
+          },
+          "response": []
+        },
+        {
+          "name": "Finalizar laudo",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/psychological-reports/{{reportId}}/finalize",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "psychological-reports",
+                "{{reportId}}",
+                "finalize"
+              ]
+            },
+            "description": "Finaliza o documento (todas as seções obrigatórias); depois disso não pode ser editado."
+          },
+          "response": []
+        },
+        {
+          "name": "Criar relatório (rascunho)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/psychological-reports",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "psychological-reports"
+              ]
+            },
+            "description": "Cria o rascunho de um laudo ou relatório psicológico (CFP 06/2019).\n\nRascunho usado em **Excluir rascunho** (o laudo acima já foi finalizado e não pode ser excluído).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patientId\": \"{{patientId}}\",\n  \"template\": \"PsychologicalStatement\",\n  \"purpose\": \"Avaliar o quadro de ansiedade para orientar o encaminhamento.\",\n  \"demand\": \"Paciente procurou atendimento por crises de ansiedade no trabalho.\",\n  \"procedure\": \"Entrevistas clínicas semanais e observação ao longo das sessões.\",\n  \"analysis\": \"Sintomas compatíveis com ansiedade generalizada, com melhora gradual.\",\n  \"conclusion\": \"Recomenda-se manter o acompanhamento psicológico semanal.\",\n  \"includeSessionSummary\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    pm.collectionVariables.set('draftReportId', pm.response.json().id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Excluir rascunho",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/psychological-reports/{{draftReportId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "psychological-reports",
+                "{{draftReportId}}"
+              ]
+            },
+            "description": "Exclui um rascunho."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Prontuários",
+      "description": "Registros do prontuário, visíveis só para o psicólogo autor. **Criar registro** guarda o id em `medicalRecordId`.",
+      "item": [
+        {
+          "name": "Criar registro",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/medical-records",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "medical-records"
+              ]
+            },
+            "description": "Novo registro no prontuário do paciente (somente psicólogos; só o autor tem acesso).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patientId\": \"{{patientId}}\",\n  \"title\": \"Avaliação inicial\",\n  \"content\": \"## Queixa\\n\\nAnsiedade no trabalho e dificuldade para dormir.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    pm.collectionVariables.set('medicalRecordId', pm.response.json().id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Buscar registros",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/medical-records?patientId={{patientId}}&search=ansiedade&page=1&pageSize=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "medical-records"
+              ],
+              "query": [
+                {
+                  "key": "patientId",
+                  "value": "{{patientId}}"
+                },
+                {
+                  "key": "search",
+                  "value": "ansiedade"
+                },
+                {
+                  "key": "from",
+                  "value": "{{monthAgo}}",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "{{today}}",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Busca nos prontuários do psicólogo logado por paciente, período e palavra-chave."
+          },
+          "response": []
+        },
+        {
+          "name": "Ver registro",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/medical-records/{{medicalRecordId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "medical-records",
+                "{{medicalRecordId}}"
+              ]
+            },
+            "description": "Registro do prontuário com a lista de anexos."
+          },
+          "response": []
+        },
+        {
+          "name": "Editar registro",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/medical-records/{{medicalRecordId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "medical-records",
+                "{{medicalRecordId}}"
+              ]
+            },
+            "description": "Edita título e conteúdo do registro.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Avaliação inicial\",\n  \"content\": \"## Queixa\\n\\nAnsiedade no trabalho e dificuldade para dormir.\\n\\n## Plano\\n\\nSessões semanais.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Anexar arquivo",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/medical-records/{{medicalRecordId}}/attachments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "medical-records",
+                "{{medicalRecordId}}",
+                "attachments"
+              ]
+            },
+            "description": "Anexa PDF, JPG ou PNG (até 10 MB) ao registro (multipart/form-data, campo \"file\").\n\nNa aba **Body**, escolha no campo `file` um PDF, JPG ou PNG de até 10 MB.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    pm.collectionVariables.set('attachmentId', pm.response.json().id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Baixar anexo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/medical-records/{{medicalRecordId}}/attachments/{{attachmentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "medical-records",
+                "{{medicalRecordId}}",
+                "attachments",
+                "{{attachmentId}}"
+              ]
+            },
+            "description": "Download do anexo."
+          },
+          "response": []
+        },
+        {
+          "name": "Remover anexo",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/medical-records/{{medicalRecordId}}/attachments/{{attachmentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "medical-records",
+                "{{medicalRecordId}}",
+                "attachments",
+                "{{attachmentId}}"
+              ]
+            },
+            "description": "Remove o anexo do registro."
+          },
+          "response": []
+        },
+        {
+          "name": "Trilha de acesso",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/medical-records/{{medicalRecordId}}/access-log",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "medical-records",
+                "{{medicalRecordId}}",
+                "access-log"
+              ]
+            },
+            "description": "Histórico de acessos ao registro: leituras, downloads e tentativas negadas (somente o autor)."
+          },
+          "response": []
+        },
+        {
+          "name": "Excluir registro",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/medical-records/{{medicalRecordId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "medical-records",
+                "{{medicalRecordId}}"
+              ]
+            },
+            "description": "Exclui (logicamente) o registro."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "IA",
+      "description": "Assistente de IA. As sugestões só funcionam com a IA habilitada e uma chave de provedor no `.env` da raiz (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY` ou `GEMINI_API_KEY`).",
+      "item": [
+        {
+          "name": "Ver configuração da IA",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/ai/settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ai",
+                "settings"
+              ]
+            },
+            "description": "Uso da IA na clínica: se está habilitada, provedor, dados autorizados e provedores configurados no servidor.\n\n`availableProviders` lista os provedores com chave configurada no servidor."
+          },
+          "response": []
+        },
+        {
+          "name": "Alterar configuração da IA",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/ai/settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ai",
+                "settings"
+              ]
+            },
+            "description": "Habilita/desabilita a IA, escolhe o provedor e os dados que podem ser enviados (Admin/Manager).\n\n`provider`: Claude, OpenAi ou Gemini; precisa estar em `availableProviders`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isEnabled\": true,\n  \"provider\": \"Claude\",\n  \"shareSessionNotes\": true,\n  \"shareFeedbacks\": true,\n  \"shareMedicalRecords\": false,\n  \"acceptTerms\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Sugerir anotações da sessão",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/ai/suggestions/session-notes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ai",
+                "suggestions",
+                "session-notes"
+              ]
+            },
+            "description": "Sugestão de registro de evolução a partir do rascunho das anotações da sessão (psicólogo da sessão).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionId\": \"{{completedSessionId}}\",\n  \"draft\": \"Chegou ansiosa, falou sobre o trabalho e a dificuldade para dormir. Treinamos respiração.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Análise do paciente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/ai/suggestions/patient-analysis",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ai",
+                "suggestions",
+                "patient-analysis"
+              ]
+            },
+            "description": "Análise do acompanhamento do paciente com base nas sessões e no prontuário do psicólogo logado.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patientId\": \"{{feedbackPatientId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Próximos passos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/ai/suggestions/next-steps",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ai",
+                "suggestions",
+                "next-steps"
+              ]
+            },
+            "description": "Sugestões de próximos passos para o acompanhamento do paciente.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patientId\": \"{{feedbackPatientId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Painel",
+      "description": "Resumo do dia, da semana e financeiro.",
+      "item": [
+        {
+          "name": "Painel",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/dashboard",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "dashboard"
+              ],
+              "query": [
+                {
+                  "key": "psychologistId",
+                  "value": "{{psychologistId}}",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Painel inicial: números do dia e da semana, agenda de hoje, próximos atendimentos e financeiro.\n\nSem `psychologistId`, Admin/Manager veem a clínica toda e o psicólogo vê os próprios números."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
