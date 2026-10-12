@@ -1,0 +1,60 @@
+schema: spec-driven
+
+# Contexto injetado em todos os artefatos (proposal, specs, design, tasks) gerados pelos comandos /opsx.
+# Detalhes em openspec/README.md e openspec/projeto/.
+context: |
+  Language: Português do Brasil (pt-BR)
+  All artifacts must be written in Português do Brasil (pt-BR).
+  Keep OpenSpec structural headings and SHALL/MUST keywords in English.
+
+  Produto: Psycheflow, ERP para clínicas de psicologia e psicólogos autônomos (TCC, Centro Universitário FAG).
+  Multiempresa: tudo pertence a uma Company; perfis Admin, Manager, Psychologist (Patient reservado, sem uso).
+
+  Monorepo:
+  - Psycheflow.Api/: .NET 10, ASP.NET Core Minimal APIs, Vertical Slice (Features/<Módulo>/<CasoDeUso>/ com
+    Request, Validator, Handler, Endpoint), EF Core 10 + PostgreSQL 17 (snake_case), Identity + JWT (2h),
+    FluentValidation (422), Result<T>/Error -> ProblemDetails com code estável, QuestPDF, IA atrás de IAiTextGenerator.
+    Sem MediatR, sem repositórios genéricos; handler usa AppDbContext direto; um slice não chama outro.
+  - Psycheflow.Front/: React 18 + TypeScript strict + Vite, CSS próprio, cliente HTTP único em src/lib/api.ts.
+  Regras transversais: filtros globais do EF por CompanyId (Tenant) e DeletedAt (SoftDelete) — não contornar sem
+  motivo; datas da agenda em DateOnly/TimeOnly locais da clínica (ClinicClock/TimeProvider, nunca DateTime.Now);
+  auditoria em UTC; código em inglês, mensagens ao usuário em pt-BR; warnings = erro.
+  Testes: xUnit v3, Shouldly, Bogus, Testcontainers (Postgres) + Respawn; TDD obrigatório (integração + unitário
+  antes da implementação), nome Metodo_Cenario_Resultado, teste de isolamento entre empresas e de permissão.
+
+  Documentação: specs vigentes em openspec/specs/<capacidade>/spec.md; arquitetura, modelo de dados, contratos da
+  API, decisões (A-xx, D-xx), rastreabilidade e backlog em openspec/projeto/.
+  IDs: RF/RNF/RD (requisitos do TCC), RC (complementares), UC (casos de uso), RN (regras), DT (dívidas),
+  D (decisões do dev), A (decisões de arquitetura).
+
+rules:
+  proposal:
+    - Cite os IDs afetados (RF, RC, UC, RN, DT, D) e as capacidades de openspec/specs/ que mudam.
+    - Decisões D-xx em aberto no openspec/projeto/status-e-backlog.md precisam ser confirmadas com o dev antes de seguir; liste-as como perguntas.
+    - Diga o que fica fora do escopo e se a mudança afeta API, front ou os dois.
+  specs:
+    - Use as capacidades existentes em openspec/specs/; crie uma nova só para um domínio que não caiba em nenhuma.
+    - Corpo do requisito em pt-BR com SHALL ou MUST; logo abaixo, a linha "**Origem**:" com os IDs (RF, UC, RN...).
+    - Cenários com WHEN/THEN (GIVEN e AND quando ajudar), citando status HTTP e o code de erro estável quando houver.
+    - Descreva comportamento observável (API e telas), não implementação; detalhes técnicos vão para o design.
+  design:
+    - Siga Vertical Slice (Features/<Módulo>/<CasoDeUso>/) e as convenções de openspec/projeto/visao-geral.md.
+    - Mudança de banco exige migration do EF e atualização de openspec/projeto/modelo-de-dados.md.
+    - Endpoint novo ou alterado exige atualização de openspec/projeto/api.md (rota, acesso, contrato, códigos de erro).
+    - Registre novas decisões de arquitetura como A-xx em openspec/projeto/decisoes-de-arquitetura.md.
+  tasks:
+    - TDD - para cada slice, primeiro os testes de integração (HTTP + Postgres via Testcontainers) e unitários das regras puras, depois a implementação.
+    - Inclua testes de isolamento entre empresas e de permissão para todo recurso novo.
+    - Mudanças no front seguem a skill psycheflow-frontend e consomem a API por src/lib/api.ts.
+    - Termine com dotnet test verde, build sem warnings e a atualização de openspec/projeto/ (api.md, modelo-de-dados.md, rastreabilidade.md, status-e-backlog.md).
+
+operations:
+  apply:
+    guidance:
+      - Use as skills do projeto em .claude/skills/ (psycheflow-feature, psycheflow-tests, psycheflow-frontend).
+      - Escreva os testes antes do código e rode dotnet test em Psycheflow.Api/ (exige Docker) antes de concluir.
+      - Se um teste falhar por bug no código, corrija o código, não o teste.
+  archive:
+    guidance:
+      - Antes de arquivar, confirme que openspec/projeto/rastreabilidade.md e status-e-backlog.md refletem o que foi entregue.
+      - Rode openspec validate --specs --strict depois de arquivar.
