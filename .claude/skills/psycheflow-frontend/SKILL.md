@@ -38,6 +38,6 @@ Stack: React 18 + TypeScript strict + Vite + react-router-dom 6 + date-fns (pt-B
 
 ## Fechar
 - `npm run typecheck` e `npm run build` (sem Node na máquina: `docker run --rm -v "$PWD:/src:ro" node:22-alpine ...` copiando o código
-  para dentro do container, ou `docker compose up -d --build web` na pasta da API).
+  para dentro do container, ou `docker compose up -d --build web` na raiz).
 - Teste o fluxo principal no navegador contra a API do compose (login demo `ana@psycheflow.dev` / `Psycheflow@123`).
 - Atualize os status em `openspec/projeto/rastreabilidade.md` e `status-e-backlog.md`.

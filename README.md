@@ -11,7 +11,8 @@ Autores: Jhonattan Curtarelli, Matheus Augusto e Matheus Mantovani.
 | Pasta | Conteúdo |
 |-------|----------|
 | [`Psycheflow.Api/`](Psycheflow.Api/) | API em **.NET 10** (Minimal APIs, Vertical Slice, EF Core 10 + PostgreSQL 17), com testes unitários e de integração. Detalhes no [README da API](Psycheflow.Api/README.md). |
-| [`Psycheflow.Front/`](Psycheflow.Front/) | Front-end em **React 18 + TypeScript + Vite**, integrado à API (também sobe pelo Docker Compose da API). |
+| [`Psycheflow.Front/`](Psycheflow.Front/) | Front-end em **React 18 + TypeScript + Vite**, integrado à API (também sobe pelo Docker Compose da raiz). |
+| [`docker-compose.yml`](docker-compose.yml) · [`dev.sh`](dev.sh) | Ambiente de desenvolvimento: banco + API + front no Docker com um comando (ver [Como rodar](#como-rodar)). |
 | [`openspec/`](openspec/) | Especificação do sistema no padrão **SDD (Spec-Driven Development)** com [OpenSpec](https://github.com/Fission-AI/OpenSpec): specs por capacidade com requisitos e cenários ([`openspec/specs/`](openspec/specs/)), mudanças propostas ([`openspec/changes/`](openspec/changes/)) e documentação de apoio — arquitetura, modelo de dados, API, decisões, rastreabilidade, backlog e os documentos originais do TCC convertidos para Markdown ([`openspec/projeto/`](openspec/projeto/)). **Comece por [`openspec/README.md`](openspec/README.md).** |
 
 > `psycheflow_v2` reúne API, front e documentação num único repositório. O histórico de commits da API foi preservado
@@ -77,17 +78,25 @@ em [`openspec/projeto/rastreabilidade.md`](openspec/projeto/rastreabilidade.md).
 
 ## Como rodar
 
-```bash
-# Tudo em containers: banco + API + front
-cd Psycheflow.Api
-cp .env.example .env
-docker compose up -d --build        # front: http://localhost:5173 · API: http://localhost:8080/scalar
+Com o Docker Desktop aberto, na raiz do repositório (no Windows, pelo Git Bash):
 
-# Front em modo desenvolvimento (opcional, com a API acima no ar)
-cd Psycheflow.Front
-npm install
-npm run dev                          # http://localhost:5173 (VITE_API_URL em .env.local)
+```bash
+./dev.sh          # sobe banco + API + front e espera ficar pronto
 ```
 
-Login de demonstração: `ana@psycheflow.dev` / `Psycheflow@123`. Pré-requisitos: Docker (e .NET 10 SDK / Node.js para
-desenvolver sem containers). Logins de demonstração e demais detalhes no [README da API](Psycheflow.Api/README.md).
+- Front: http://localhost:5173 · API: http://localhost:8080/scalar · login demo `ana@psycheflow.dev` / `Psycheflow@123`
+- Na primeira vez o script cria o `.env` a partir do `.env.example` (portas, chave JWT de dev e chaves de IA opcionais).
+
+| Comando | O que faz |
+|---------|-----------|
+| `./dev.sh` | Sobe tudo, reconstruindo as imagens (equivale a `docker compose up -d --build --wait`) |
+| `./dev.sh watch` | Sobe tudo e reconstrói a API/o front sozinho ao salvar o código |
+| `./dev.sh db` | Sobe só o banco, para rodar a API com `dotnet run` e o front com `npm run dev` |
+| `./dev.sh logs [db\|api\|web]` | Acompanha os logs |
+| `./dev.sh down` | Para os containers (os dados ficam) |
+| `./dev.sh reset` | Apaga o banco e os anexos e sobe de novo com os dados de demonstração |
+
+Para desenvolver fora dos containers (recarga instantânea), use `./dev.sh db` e rode a API
+(`dotnet run --project src/Psycheflow.Api`, em `Psycheflow.Api/`) e o front (`npm install && npm run dev`, em
+`Psycheflow.Front/`, com `VITE_API_URL=http://localhost:5240` no `.env.local`). Pré-requisitos: Docker (e .NET 10 SDK /
+Node.js para desenvolver sem containers). Logins de demonstração e demais detalhes no [README da API](Psycheflow.Api/README.md).

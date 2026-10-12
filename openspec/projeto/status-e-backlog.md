@@ -105,6 +105,10 @@ agendamento sem checar se o psicólogo existe/é da empresa.
 ### Documentação
 - [x] Migração para SDD com OpenSpec: `docs/` → `openspec/` (specs por capacidade, `.docx` convertidos em `projeto/fontes/`)
 
+### Ambiente de desenvolvimento
+- [x] `docker-compose.yml` e `.env.example` na raiz do monorepo + script `dev.sh` (sobe banco, API e front com um comando;
+  `watch`, `db`, `logs`, `down`, `reset`)
+
 ### Painel e endurecimento da API
 - [x] `GET /dashboard` (RC-06): contadores do dia/semana, agenda de hoje, próximos atendimentos e financeiro
 - [x] Limite de requisições por IP em login/registro e por usuário nas sugestões de IA (DT-23)

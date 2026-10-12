@@ -5,7 +5,7 @@ API do **Psycheflow**, ERP para clínicas de psicologia e psicólogos autônomos
 - **.NET 10** · ASP.NET Core **Minimal APIs** · **EF Core 10** + **PostgreSQL 17**
 - Arquitetura **Vertical Slice** com núcleo compartilhado (`Common/`) no estilo Clean
 - **TDD**: todo caso de uso tem testes unitários e de integração (Postgres real via Testcontainers)
-- Docker Compose para desenvolvimento · CI no GitHub Actions (`.github/workflows/api-ci.yml` na raiz do monorepo) com cobertura mínima de 80%
+- Docker Compose para desenvolvimento (na raiz do monorepo, com o script `dev.sh`) · CI no GitHub Actions (`.github/workflows/api-ci.yml` na raiz do monorepo) com cobertura mínima de 80%
 
 ## Sumário
 
@@ -23,22 +23,25 @@ API do **Psycheflow**, ERP para clínicas de psicologia e psicólogos autônomos
 
 Pré-requisitos: [.NET 10 SDK](https://dotnet.microsoft.com/download) e [Docker Desktop](https://www.docker.com/products/docker-desktop/).
 
+O `docker-compose.yml`, o `.env.example` e o script `dev.sh` ficam na **raiz do monorepo** (todos os comandos de
+`./dev.sh` estão no [README da raiz](../README.md#como-rodar)).
+
 ### Tudo em containers (banco + API + front)
 
 ```bash
-cp .env.example .env
-docker compose up -d --build
+./dev.sh          # na raiz; cria o .env na primeira vez (= docker compose up -d --build --wait)
 ```
 
 - Front: http://localhost:5173 (build de produção servido pelo Nginx; login demo `ana@psycheflow.dev` / `Psycheflow@123`)
 - API: http://localhost:8080 · documentação interativa (Scalar): http://localhost:8080/scalar
 - As migrations são aplicadas na subida e, em `Development`, os **dados de demonstração** são carregados.
+- `./dev.sh watch` reconstrói a API e o front ao salvar o código.
 
 ### Banco no Docker, API pelo `dotnet run` (melhor para desenvolver)
 
 ```bash
-docker compose up -d db
-dotnet run --project src/Psycheflow.Api
+./dev.sh db                                # na raiz (= docker compose up -d db)
+dotnet run --project src/Psycheflow.Api    # nesta pasta
 ```
 
 - API: http://localhost:5240 · Scalar: http://localhost:5240/scalar
@@ -211,12 +214,12 @@ Documentação completa e interativa em `/scalar` (ambiente Development).
 | `Cors:AllowedOrigins` | Origens do front permitidas |
 | `Database:MigrateOnStartup` | Aplica migrations ao subir |
 | `Storage:Path` | Pasta dos anexos de prontuário (no compose, volume `api-storage`) |
-| `Ai:Claude:ApiKey` / `Ai:OpenAi:ApiKey` / `Ai:Gemini:ApiKey` | Chaves dos provedores de IA (opcionais; só os configurados aparecem para as clínicas). No compose: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY` no `.env` |
+| `Ai:Claude:ApiKey` / `Ai:OpenAi:ApiKey` / `Ai:Gemini:ApiKey` | Chaves dos provedores de IA (opcionais; só os configurados aparecem para as clínicas). No compose: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY` no `.env` da raiz |
 | `Ai:<Provedor>:Model` | Modelo de cada provedor (padrões: `claude-opus-5`, `gpt-5`, `gemini-2.5-pro`) |
 | `Ai:MaxOutputTokens` / `Ai:TimeoutSeconds` | Limite da resposta (16000) e tempo máximo por sugestão (120 s) |
 | `RateLimiting:Auth` / `RateLimiting:Ai` | `PermitLimit` e `WindowSeconds` do limite de requisições (login/registro por IP: 10/min; sugestões de IA por usuário: 20/min) |
 
 - Nada de produção é versionado. Em produção, configure por variáveis de ambiente (`Jwt__Key`, `ConnectionStrings__Postgres`, …).
-- `appsettings.Development.json` e `.env.example` contêm apenas valores de desenvolvimento local.
+- `appsettings.Development.json` e `.env.example` (na raiz) contêm apenas valores de desenvolvimento local.
 - ⚠️ A versão anterior do projeto versionava `env.appsettings.json` com chave JWT e senhas: esses valores estão no
   histórico do git e **devem ser considerados comprometidos** — nunca os reutilize.

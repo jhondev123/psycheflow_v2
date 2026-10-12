@@ -15,6 +15,7 @@
 psycheflow/                      # monorepo github.com/jhondev123/psycheflow_v2
 ├─ README.md                     # contexto do projeto
 ├─ CLAUDE.md                     # instruções para o Claude Code (ponteiro para openspec/)
+├─ docker-compose.yml, .env.example, dev.sh   # ambiente de dev: banco + API + front com `./dev.sh`
 ├─ .github/workflows/api-ci.yml  # CI da API
 ├─ .claude/                      # skills do projeto (psycheflow-*) e do OpenSpec (openspec-*, comandos /opsx)
 ├─ openspec/                     # especificação (SDD) — ver openspec/README.md
@@ -24,10 +25,10 @@ psycheflow/                      # monorepo github.com/jhondev123/psycheflow_v2
 │  └─ projeto/                   # esta documentação de apoio (+ fontes/ com os .docx convertidos)
 ├─ Psycheflow.Api/               # backend — ver README.md dele (histórico importado de jhondev123/Psycheflow.Api)
 │  ├─ Psycheflow.slnx, global.json, Directory.Build.props, Directory.Packages.props, .editorconfig
-│  ├─ docker-compose.yml, Dockerfile, .env.example
+│  ├─ Dockerfile
 │  ├─ src/Psycheflow.Api/        # Common/ + Features/<Módulo>/<CasoDeUso>/
 │  └─ tests/                     # UnitTests + IntegrationTests (Testcontainers)
-└─ Psycheflow.Front/             # frontend React (Dockerfile + nginx.conf para o compose)
+└─ Psycheflow.Front/             # frontend React (Dockerfile + nginx.conf para o compose da raiz)
    └─ src/
       ├─ App.tsx, main.tsx              # rotas (RequireAuth / RequireRole)
       ├─ components/                    # layout/, ui/ (Modal, Feedback, Markdown, ReasonDialog…),
@@ -107,16 +108,15 @@ psycheflow/                      # monorepo github.com/jhondev123/psycheflow_v2
 ## Como rodar (dev)
 
 ```bash
-# Backend (ver Psycheflow.Api/README.md)
-cd Psycheflow.Api && cp .env.example .env
-docker compose up -d --build        # Postgres + API em http://localhost:8080 (Scalar em /scalar)
-# ou: docker compose up -d db && dotnet run --project src/Psycheflow.Api   (http://localhost:5240)
-dotnet test                          # precisa do Docker rodando
+# Tudo em containers, na raiz (cria o .env na 1ª vez): front http://localhost:5173 · API http://localhost:8080/scalar
+./dev.sh                             # ./dev.sh help lista: watch, db, logs, down, reset
 # Logins demo (Development): ana@psycheflow.dev / Psycheflow@123 (ver DevData.cs)
 
-# Front
+# Fora dos containers: só o banco no Docker
+./dev.sh db
+cd Psycheflow.Api && dotnet run --project src/Psycheflow.Api   # http://localhost:5240
+dotnet test                          # precisa do Docker rodando
 cd Psycheflow.Front && npm install && npm run dev  # http://localhost:5173 (VITE_API_URL em .env.local)
-# ou tudo em containers: o compose da API também sobe o front (serviço web) em http://localhost:5173
 ```
 
 ## Convenções

@@ -53,7 +53,7 @@
 | A-20 | Estratégia | **Projeto novo ao lado do antigo**, numa branch, módulo a módulo, testes verdes a cada módulo; projeto antigo apagado no final. |
 | A-21 | Testes | **xUnit v3 + Shouldly + Bogus + NSubstitute (só se preciso)**; TDD por slice (testes antes do código); cobertura mínima **80%** (coverlet) no CI. |
 | A-22 | Documentos | **Remover tudo de FastReport** (pacotes, `.frx`, `Documents`/`DocumentFields`, conexão SqlServer, `ExportFormatEnum`). Documentos futuros serão classes **QuestPDF** fixas em `Features/Documents` (fase própria). |
-| A-23 | Docker | `docker-compose.yml` com **postgres:17** (healthcheck + volume) **e a API** (Dockerfile multi-stage; aplica migrations + seed de roles ao subir). Segredos em `.env` (fora do git) / user-secrets; `.env.example` versionado. |
+| A-23 | Docker | `docker-compose.yml` com **postgres:17** (healthcheck + volume) **e a API** (Dockerfile multi-stage; aplica migrations + seed de roles ao subir). Segredos em `.env` (fora do git) / user-secrets; `.env.example` versionado. Desde 12/10/2026 o compose (com o front) e o `.env.example` ficam na raiz do monorepo, com o script `dev.sh` para subir tudo com um comando. |
 | A-24 | Configurações | Tabela tipada **`company_settings`** (1:1 com empresa): `session_duration_minutes` (50, ≥15), `session_default_price`, `time_zone`. `Config`/`ConfigAi` removidas (IA terá tabela própria na fase de IA). |
 | A-25 | Usuários da empresa | Admin/Manager criam usuário → **senha temporária** devolvida uma única vez + `MustChangePassword`; enquanto não trocar, só `POST /auth/change-password` é permitido. |
 | A-26 | CI | **GitHub Actions** desde a Fase 0: build (warnings = erro), testes unit + integração, gate de cobertura 80%. |

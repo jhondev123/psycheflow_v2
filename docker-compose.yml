@@ -1,7 +1,8 @@
-# Ambiente de desenvolvimento.
-#   docker compose up -d          -> banco + API (http://localhost:8080/scalar)
-#   docker compose up -d db       -> só o banco (API via `dotnet run`)
-# Copie .env.example para .env antes do primeiro uso.
+# Ambiente de desenvolvimento: banco + API + front. O jeito fácil é o script `./dev.sh` (ver `./dev.sh help`).
+#   docker compose up -d --build --wait   -> tudo (front http://localhost:5173 · API http://localhost:8080/scalar)
+#   docker compose up -d db               -> só o banco (API via `dotnet run`, front via `npm run dev`)
+#   docker compose watch --no-up          -> reconstrói API/front ao salvar o código (com tudo já no ar)
+# Copie .env.example para .env antes do primeiro uso (o dev.sh faz isso sozinho).
 name: psycheflow
 
 services:
@@ -23,7 +24,7 @@ services:
       retries: 10
 
   api:
-    build: .
+    build: ./Psycheflow.Api
     restart: unless-stopped
     depends_on:
       db:
@@ -43,11 +44,24 @@ services:
       - "${API_PORT:-8080}:8080"
     volumes:
       - api-storage:/app/storage
+    # Mesmo teste do Dockerfile, mas checando a cada 2 s na subida para o `--wait` liberar logo.
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+      start_period: 60s
+      start_interval: 2s
+    develop:
+      watch:
+        - action: rebuild
+          path: ./Psycheflow.Api/src/Psycheflow.Api
+          ignore: [bin/, obj/]
 
   web:
     # Front React (build de produção servido pelo Nginx).
     build:
-      context: ../Psycheflow.Front
+      context: ./Psycheflow.Front
       args:
         VITE_API_URL: http://localhost:${API_PORT:-8080}
     restart: unless-stopped
@@ -55,6 +69,10 @@ services:
       - api
     ports:
       - "${FRONT_PORT:-5173}:80"
+    develop:
+      watch:
+        - action: rebuild
+          path: ./Psycheflow.Front/src
 
 volumes:
   postgres-data:
